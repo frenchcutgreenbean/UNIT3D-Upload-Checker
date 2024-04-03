@@ -706,12 +706,12 @@ FUNCTION_MAP = {
     "tmdb": ch.get_tmdb,
     "search": ch.search_trackers,
     "save": ch.create_search_data,
-    "manual": ch.export_txt,
     "run-all": ch.run_all,
     "clear-data": ch.clear_data,
     "setting-add": ch.update_setting,
     "setting-rm": ch.remove_setting,
     "setting": ch.get_setting,
+    "txt": ch.export_txt,
     "csv": ch.export_csv,
     "gg": ch.export_gg,
 }
@@ -731,7 +731,7 @@ parser.add_argument(
     "-t",
     help="Specify the target setting to update." 
     "\nValid targets: directories, tmdb_key, enabled_sites, gg_path, search_cooldown, min_file_size, allow_dupes, banned_groups, ignored_qualities, ignored_keywords"
-    "\nYou can also use setting-add to add api keys: aith, blu, fnp, rfx. followed by -s <key>",
+    "\nYou can also use setting-add to add api keys: -t aith, blu, fnp, rfx. followed by -s <key>",
 )
 parser.add_argument("--set", "-s", help="Specify the new value for the target setting")
 
