@@ -1,0 +1,344 @@
+safe
+
+        Movie Title: Movie
+        File Year: 1954
+        TMDB Year: 1954
+        Quality: remux
+        File Location: /home/user/moviefile.mkv
+        File Size: 459.06 MB
+        TMDB Search: https://tracker.cc/torrents?view=list&tmdbID=11249
+        String Search: https://tracker.cc/torrents?view=list&name=Movie
+        TMDB: https://www.themoviedb.org/movie/11249
+        Search Info: Not on tracker
+        Extra Info: 
+        Media Info: 
+            Language(s): ['en']
+            Subtitle(s): ['en']
+            Audio Info: {'track_2': {'language': 'en', 'channels': 1, 'format': 'AC-3'}}
+            Video Info: {'bit_rate': 5926958, 'frame_rate': '25.000', 'format': 'MPEG Video', 'height': 576, 'width': 720}
+                            
+        
+danger
+
+        Movie Title: Movie
+        File Year: 2018
+        TMDB Year: 2018
+        Quality: webdl
+        File Location: /home/user/moviefile.mkv
+        File Size: 721.11 MB
+        TMDB Search: https://tracker.cc/torrents?view=list&tmdbID=11249
+        String Search: https://tracker.cc/torrents?view=list&name=Movie
+        TMDB: https://www.themoviedb.org/movie/11249
+        Search Info: Not on tracker at 1080p 
+        Extra Info:  No English subtitles found in media info
+        Media Info: 
+            Language(s): ['he']
+            Subtitle(s): []
+            Audio Info: {'track_2': {'language': 'he', 'channels': 2, 'format': 'AAC'}}
+            Video Info: {'bit_rate': 3388523, 'frame_rate': '25.000', 'format': 'AVC', 'height': 1080, 'width': 1920}
+                            
+        
+
+        Movie Title: Movie
+        File Year: 2021
+        TMDB Year: 2021
+        Quality: webdl
+        File Location: /home/user/moviefile.mkv
+        File Size: 266.16 MB
+        TMDB Search: https://tracker.cc/torrents?view=list&tmdbID=11249
+        String Search: https://tracker.cc/torrents?view=list&name=Movie
+        TMDB: https://www.themoviedb.org/movie/11249
+        Search Info: Not on tracker at 1080p 
+        Extra Info:  No English subtitles found in media info
+        Media Info: 
+            Language(s): ['pt']
+            Subtitle(s): []
+            Audio Info: {'track_2': {'language': 'pt', 'channels': 2, 'format': 'AAC'}}
+            Video Info: {'bit_rate': 2291084, 'frame_rate': '24.000', 'format': 'AVC', 'height': 1080, 'width': 1920}
+                            
+        
+
+        Movie Title: Movie
+        File Year: 
+        TMDB Year: 2020
+        Quality: None
+        File Location: /home/user/moviefile.mkv
+        File Size: 690.48 MB
+        TMDB Search: https://tracker.cc/torrents?view=list&tmdbID=11249
+        String Search: https://tracker.cc/torrents?view=list&name=Movie
+        TMDB: https://www.themoviedb.org/movie/11249
+        Search Info: Source was found on tracker, but couldn't determine input source quality or resolution. Manual search required.
+        Extra Info: TMDB Release year and given year are different this might mean improper match manual search required No English subtitles found in media info
+        Media Info: 
+            Language(s): [None]
+            Subtitle(s): []
+            Audio Info: {'track_2': {'language': None, 'channels': 2, 'format': 'AAC'}}
+            Video Info: {'bit_rate': None, 'frame_rate': '24.000', 'format': 'AVC', 'height': 1080, 'width': 1440}
+                            
+        
+
+        Movie Title: Movie
+        File Year: 2021
+        TMDB Year: 2021
+        Quality: webdl
+        File Location: /home/user/moviefile.mkv
+        File Size: 665.52 MB
+        TMDB Search: https://tracker.cc/torrents?view=list&tmdbID=11249
+        String Search: https://tracker.cc/torrents?view=list&name=Movie
+        TMDB: https://www.themoviedb.org/movie/11249
+        Search Info: Not on tracker at 1080p 
+        Extra Info:  No English subtitles found in media info
+        Media Info: 
+            Language(s): ['es']
+            Subtitle(s): []
+            Audio Info: {'track_2': {'language': 'es', 'channels': 2, 'format': 'AAC'}}
+            Video Info: {'bit_rate': 6100656, 'frame_rate': '24.000', 'format': 'AVC', 'height': 1080, 'width': 1920}
+                            
+        
+
+        Movie Title: Movie
+        File Year: 1966
+        TMDB Year: 1966
+        Quality: encode
+        File Location: /home/user/moviefile.mkv
+        File Size: 740.71 MB
+        TMDB Search: https://tracker.cc/torrents?view=list&tmdbID=11249
+        String Search: https://tracker.cc/torrents?view=list&name=Movie
+        TMDB: https://www.themoviedb.org/movie/11249
+        Search Info: Not on tracker at 1080p 
+        Extra Info:  No English subtitles found in media info
+        Media Info: 
+            Language(s): [None]
+            Subtitle(s): [None]
+            Audio Info: {'track_2': {'language': None, 'channels': 1, 'format': 'AC-3'}}
+            Video Info: {'bit_rate': 8478000, 'frame_rate': '23.976', 'format': 'AVC', 'height': 1080, 'width': 1440}
+                            
+        
+
+        Movie Title: Movie
+        File Year: 2019
+        TMDB Year: 2019
+        Quality: webdl
+        File Location: /home/user/moviefile.mkv
+        File Size: 254.76 MB
+        TMDB Search: https://tracker.cc/torrents?view=list&tmdbID=11249
+        String Search: https://tracker.cc/torrents?view=list&name=Movie
+        TMDB: https://www.themoviedb.org/movie/11249
+        Search Info: Not on tracker at 1080p 
+        Extra Info:  No English subtitles found in media info
+        Media Info: 
+            Language(s): ['zxx']
+            Subtitle(s): []
+            Audio Info: {'track_2': {'language': 'zxx', 'channels': 2, 'format': 'AAC'}}
+            Video Info: {'bit_rate': 5000506, 'frame_rate': '25.000', 'format': 'AVC', 'height': 1036, 'width': 1920}
+                            
+        
+
+        Movie Title: Movie
+        File Year: 2022
+        TMDB Year: 2022
+        Quality: webdl
+        File Location: /home/user/moviefile.mkv
+        File Size: 201.45 MB
+        TMDB Search: https://tracker.cc/torrents?view=list&tmdbID=11249
+        String Search: https://tracker.cc/torrents?view=list&name=Movie
+        TMDB: https://www.themoviedb.org/movie/11249
+        Search Info: Not on tracker at 1080p 
+        Extra Info:  No English subtitles found in media info
+        Media Info: 
+            Language(s): ['zxx']
+            Subtitle(s): []
+            Audio Info: {'track_2': {'language': 'zxx', 'channels': 2, 'format': 'AAC'}}
+            Video Info: {'bit_rate': 3444357, 'frame_rate': '23.976', 'format': 'AVC', 'height': 1080, 'width': 1920}
+                            
+        
+
+        Movie Title: Movie
+        File Year: 1966
+        TMDB Year: 1966
+        Quality: encode
+        File Location: /home/user/moviefile.mkv
+        File Size: 636.35 MB
+        TMDB Search: https://tracker.cc/torrents?view=list&tmdbID=11249
+        String Search: https://tracker.cc/torrents?view=list&name=Movie
+        TMDB: https://www.themoviedb.org/movie/11249
+        Search Info: Not on tracker at 1080p 
+        Extra Info:  No English subtitles found in media info
+        Media Info: 
+            Language(s): [None]
+            Subtitle(s): [None]
+            Audio Info: {'track_2': {'language': None, 'channels': 1, 'format': 'AC-3'}}
+            Video Info: {'bit_rate': 8945000, 'frame_rate': '23.976', 'format': 'AVC', 'height': 1080, 'width': 1440}
+                            
+        
+
+        Movie Title: Movie
+        File Year: 2010
+        TMDB Year: 2010
+        Quality: webdl
+        File Location: /home/user/moviefile.mkv
+        File Size: 232.91 MB
+        TMDB Search: https://tracker.cc/torrents?view=list&tmdbID=11249
+        String Search: https://tracker.cc/torrents?view=list&name=Movie
+        TMDB: https://www.themoviedb.org/movie/11249
+        Search Info: Not on tracker at 1080p 
+        Extra Info:  No English subtitles found in media info
+        Media Info: 
+            Language(s): ['sv-SE']
+            Subtitle(s): []
+            Audio Info: {'track_2': {'language': 'sv-SE', 'channels': 2, 'format': 'AAC'}}
+            Video Info: {'bit_rate': 2866440, 'frame_rate': '25.000', 'format': 'AVC', 'height': 1080, 'width': 1920}
+                            
+        
+
+        Movie Title: Movie
+        File Year: 1966
+        TMDB Year: 1966
+        Quality: webdl
+        File Location: /home/user/moviefile.mkv
+        File Size: 224.67 MB
+        TMDB Search: https://tracker.cc/torrents?view=list&tmdbID=11249
+        String Search: https://tracker.cc/torrents?view=list&name=Movie
+        TMDB: https://www.themoviedb.org/movie/11249
+        Search Info: Not on tracker at 1080p 
+        Extra Info:  No English subtitles found in media info
+        Media Info: 
+            Language(s): [None]
+            Subtitle(s): []
+            Audio Info: {'track_2': {'language': None, 'channels': 2, 'format': 'AAC'}}
+            Video Info: {'bit_rate': 5371573, 'frame_rate': '23.976', 'format': 'AVC', 'height': 1080, 'width': 1920}
+                            
+        
+
+        Movie Title: Movie
+        File Year: 2022
+        TMDB Year: 2022
+        Quality: webdl
+        File Location: /home/user/moviefile.mkv
+        File Size: 507.75 MB
+        TMDB Search: https://tracker.cc/torrents?view=list&tmdbID=11249
+        String Search: https://tracker.cc/torrents?view=list&name=Movie
+        TMDB: https://www.themoviedb.org/movie/11249
+        Search Info: Not on tracker at 1080p 
+        Extra Info:  No English subtitles found in media info
+        Media Info: 
+            Language(s): ['ar']
+            Subtitle(s): []
+            Audio Info: {'track_2': {'language': 'ar', 'channels': 2, 'format': 'AAC'}}
+            Video Info: {'bit_rate': 4174071, 'frame_rate': '23.976', 'format': 'AVC', 'height': 1080, 'width': 1920}
+                            
+        
+
+        Movie Title: Movie
+        File Year: 2014
+        TMDB Year: 2015
+        Quality: webdl
+        File Location: /home/user/moviefile.mkv
+        File Size: 691.76 MB
+        TMDB Search: https://tracker.cc/torrents?view=list&tmdbID=11249
+        String Search: https://tracker.cc/torrents?view=list&name=Movie
+        TMDB: https://www.themoviedb.org/movie/11249
+        Search Info: Not on tracker at 1080p 
+        Extra Info: TMDB Release year and given year are different this might mean improper match manual search required
+        Media Info: 
+            Language(s): ['en']
+            Subtitle(s): ['zh', 'zh', 'en']
+            Audio Info: {'track_2': {'language': 'en', 'channels': 2, 'format': 'AAC'}}
+            Video Info: {'bit_rate': 4761571, 'frame_rate': '23.976', 'format': 'AVC', 'height': 1080, 'width': 1920}
+                            
+        
+
+        Movie Title: Movie
+        File Year: 2011
+        TMDB Year: 2011
+        Quality: webdl
+        File Location: /home/user/moviefile.mkv
+        File Size: 543.97 MB
+        TMDB Search: https://tracker.cc/torrents?view=list&tmdbID=11249
+        String Search: https://tracker.cc/torrents?view=list&name=Movie
+        TMDB: https://www.themoviedb.org/movie/11249
+        Search Info: Not on tracker at 1080p 
+        Extra Info:  No English subtitles found in media info
+        Media Info: 
+            Language(s): [None]
+            Subtitle(s): []
+            Audio Info: {'track_2': {'language': None, 'channels': 2, 'format': 'AAC'}}
+            Video Info: {'bit_rate': 5465254, 'frame_rate': '24.000', 'format': 'AVC', 'height': 1080, 'width': 1920}
+                            
+        
+
+        Movie Title: Movie
+        File Year: 
+        TMDB Year: 2005
+        Quality: None
+        File Location: /home/user/moviefile.mkv
+        File Size: 331.41 MB
+        TMDB Search: https://tracker.cc/torrents?view=list&tmdbID=11249
+        String Search: https://tracker.cc/torrents?view=list&name=Movie
+        TMDB: https://www.themoviedb.org/movie/11249
+        Search Info: Not on tracker at 1080p 
+        Extra Info: TMDB Release year and given year are different this might mean improper match manual search required
+        Media Info: 
+            Language(s): ['is']
+            Subtitle(s): ['en', 'fr']
+            Audio Info: {'track_2': {'language': 'is', 'channels': 2, 'format': 'AAC'}}
+            Video Info: {'bit_rate': 5141783, 'frame_rate': '24.000', 'format': 'AVC', 'height': 1080, 'width': 1920}
+                            
+        
+
+        Movie Title: Movie
+        File Year: 2020
+        TMDB Year: 2020
+        Quality: webdl
+        File Location: /home/user/moviefile.mkv
+        File Size: 217.43 MB
+        TMDB Search: https://tracker.cc/torrents?view=list&tmdbID=11249
+        String Search: https://tracker.cc/torrents?view=list&name=Movie
+        TMDB: https://www.themoviedb.org/movie/11249
+        Search Info: Not on tracker at 1080p 
+        Extra Info:  No English subtitles found in media info
+        Media Info: 
+            Language(s): ['is']
+            Subtitle(s): []
+            Audio Info: {'track_2': {'language': 'is', 'channels': 2, 'format': 'AAC'}}
+            Video Info: {'bit_rate': 3410983, 'frame_rate': '25.000', 'format': 'AVC', 'height': 1080, 'width': 1920}
+                            
+        
+
+        Movie Title: Movie
+        File Year: 2019
+        TMDB Year: 2019
+        Quality: webdl
+        File Location: /home/user/moviefile.mkv
+        File Size: 593.03 MB
+        TMDB Search: https://tracker.cc/torrents?view=list&tmdbID=11249
+        String Search: https://tracker.cc/torrents?view=list&name=Movie
+        TMDB: https://www.themoviedb.org/movie/11249
+        Search Info: Not on tracker at 1080p 
+        Extra Info:  No English subtitles found in media info
+        Media Info: 
+            Language(s): ['fr']
+            Subtitle(s): []
+            Audio Info: {'track_2': {'language': 'fr', 'channels': 2, 'format': 'AAC'}}
+            Video Info: {'bit_rate': 5027791, 'frame_rate': '23.976', 'format': 'AVC', 'height': 1080, 'width': 1440}
+                            
+        
+
+        Movie Title: Movie
+        File Year: 2017
+        TMDB Year: 2021
+        Quality: webdl
+        File Location: /home/user/moviefile.mkv
+        File Size: 592.63 MB
+        TMDB Search: https://tracker.cc/torrents?view=list&tmdbID=11249
+        String Search: https://tracker.cc/torrents?view=list&name=Movie
+        TMDB: https://www.themoviedb.org/movie/11249
+        Search Info: Not on tracker at 1080p 
+        Extra Info: TMDB Release year and given year are different this might mean improper match manual search required No English subtitles found in media info
+        Media Info: 
+            Language(s): [None]
+            Subtitle(s): []
+            Audio Info: {'track_2': {'language': None, 'channels': 2, 'format': 'AAC'}}
+            Video Info: {'bit_rate': None, 'frame_rate': '24.000', 'format': 'AVC', 'height': 1080, 'width': 1920}
+                            
+        

@@ -1,0 +1,54 @@
+{
+    "aither": {
+        "url": "https://aither.cc/",
+        "resolution_map": {
+            "4320p": 1,
+            "2160p": 2,
+            "1080p": 3,
+            "1080i": 4,
+            "720p": 5,
+            "576p": 6,
+            "576i": 7,
+            "480p": 8,
+            "480i": 9
+        }
+    },
+    "fearnopeer": {
+        "url": "https://fearnopeer.com/",
+        "resolution_map": {
+            "4320p": 1,
+            "2160p": 2,
+            "1080p": 3,
+            "1080i": 11,
+            "720p": 5,
+            "576p": 6,
+            "480p": 8
+        }
+    },
+    "reelflix": {
+        "url": "https://reelflix.xyz/",
+        "resolution_map": {
+            "4320p": 1,
+            "2160p": 2,
+            "1080p": 3,
+            "1080i": 4,
+            "720p": 5,
+            "576p": 6,
+            "480p": 8,
+            "480i": 9
+        }
+    },
+    "blutopia": {
+        "url": "https://blutopia.cc/",
+        "resolution_map": {
+            "4320p": 1,
+            "2160p": 2,
+            "1080p": 3,
+            "1080i": 4,
+            "720p": 5,
+            "576p": 6,
+            "480p": 8,
+            "480i": 9
+        }
+    }
+}
