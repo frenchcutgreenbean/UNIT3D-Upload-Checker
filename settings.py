@@ -91,7 +91,7 @@ class Settings:
         try:
             url = f"https://api.themoviedb.org/3/configuration?api_key={key}"
             response = requests.get(url)
-            if response.history:
+            if response.status_code != 200:
                 print("Invalid API Key")
                 return
             else:
