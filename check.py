@@ -184,6 +184,10 @@ class UploadChecker:
                 print("Please scan directories first")
                 return
             print("Searching TMDB")
+            if not self.tmdb_key:
+                print("Please add a TMDB key")
+                print("setting-add -t tmdb -s <key>")
+                return
             for dir in self.scan_data:
                 if verbose:
                     print("Searching files from: ", dir)
