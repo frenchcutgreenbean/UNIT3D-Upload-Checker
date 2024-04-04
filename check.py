@@ -319,8 +319,6 @@ class UploadChecker:
                                     else ""
                                 )
                                 url = f"{url}api/torrents/filter?tmdbId={tmdb}&categories[]=1&api_token={key}{resolution_query}"
-                                if verbose:
-                                    print(url)
                                 response = requests.get(url)
                                 res_data = json.loads(response.content)
                                 results = res_data["data"] if res_data["data"] else None
@@ -384,7 +382,7 @@ class UploadChecker:
                                         print(f"Not on {tracker}")
                                     else:
                                         print(tracker_message)
-                                
+                                print("Waiting for cooldown...", self.cooldown)
                                 time.sleep(self.cooldown)
                             except Exception as e:
                                 print(
