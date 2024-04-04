@@ -130,13 +130,17 @@ class Settings:
         except Exception as e:
             print("Error Validating Key:", e)
 
+    def setting_helper(self, target):
+        settings = self.current_settings
+        matching_keys = [key for key in settings.keys() if target in key]
+        return matching_keys
 
     # Update a specific setting
     def update_setting(self, target, value):
         try:
             settings = self.current_settings
             nicknames = self.tracker_nicknames
-            matching_keys = [key for key in settings.keys() if target in key]
+            matching_keys = self.setting_helper(target)
             if len(matching_keys) == 1:
                 target = matching_keys[0]  # Update target to the full key
                 if target == "tmdb_key":
@@ -217,15 +221,23 @@ class Settings:
 
     def return_setting(self, target):
         try:
-            if target in self.current_settings:
+            matching_keys = self.setting_helper(target)
+            if len(matching_keys) == 1:
+                target = matching_keys[0]  # Update target to the full key
                 return self.current_settings[target]
+            elif len(matching_keys) > 1:
+                print("Multiple settings match the provided substring. Please provide a more specific target.")
+                print(self.current_settings.keys())
+                print("Unique substrings accepted: dir, tmdb, sites, gg, search, size, dupes, banned, qual, keywords")
             else:
                 return (target, " Not found in current settings.")
         except Exception as e:
             print("Error returning settings: ", e)
     def remove_setting(self, target):
         try:
-            if target in self.current_settings:
+            matching_keys = self.setting_helper(target)
+            if len(matching_keys) == 1:
+                target = matching_keys[0]  # Update target to the full key
                 setting = self.current_settings[target]
                 if isinstance(setting, list):
                     if len(setting) > 0:
@@ -248,6 +260,16 @@ class Settings:
                 else:
                     print("The setting is not a list.")
                 self.write_settings()
+            elif len(matching_keys) > 1:
+                print(
+                    "Multiple settings match the provided substring. Please provide a more specific target."
+                )
+                print(self.current_settings.keys())
+                print(
+                    "Unique substrings accepted: dir, tmdb, sites, gg, search, size, dupes, banned, qual, keywords"
+                )
+            else:
+                return (target, " Not found in current settings.")
         except Exception as e:
             print("Error removing setting:", e)
 
