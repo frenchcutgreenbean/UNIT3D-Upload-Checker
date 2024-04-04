@@ -283,9 +283,8 @@ class UploadChecker:
                         continue
                     if value["tmdb"] is None:
                         continue
-                    if verbose:
-                        print("=" * self.term_size.columns)
-                        print(f"Searching Trackers for {value['title']}")
+                    print("=" * self.term_size.columns)
+                    print(f"Searching Trackers for {value['title']}")
                     tmdb = value["tmdb"]
                     quality = value["quality"] if value["quality"] else None
                     resolution = value["resolution"] if value["resolution"] else None
