@@ -1,5 +1,2 @@
-data/*.json
-outputs/*.txt
-outputs/*.csv
 *.pyc
 PTN/__pycache__
