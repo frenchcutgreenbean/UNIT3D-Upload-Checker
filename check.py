@@ -289,18 +289,18 @@ class UploadChecker:
                     tmdb = value["tmdb"]
                     quality = value["quality"] if value["quality"] else None
                     resolution = value["resolution"] if value["resolution"] else None
-                    value["trackers"] = {}
+                    if "trackers" not in value:
+                        value["trackers"] = {}
                     try:
                         # Query each trackers api
                         for tracker in self.enabled_sites:
                             try:
-                                if "trackers" in value:
-                                    if tracker in value["trackers"]:
-                                        if verbose:
-                                            print(
-                                                f"{self.output_folder}{tracker} already searched. For {value['title']} Skipping."
-                                            )
-                                        continue
+                                if tracker in value["trackers"]:
+                                    if verbose:
+                                        print(
+                                            f"{self.output_folder}{tracker} already searched. For {value['title']} Skipping."
+                                        )
+                                    continue
                                 url = self.tracker_info[tracker]["url"]
                                 key = self.current_settings["keys"][tracker]
                                 if not key:
@@ -334,7 +334,7 @@ class UploadChecker:
                                     )
                                     value["trackers"][tracker] = True
                                     continue
-                                if results and self.allow_dupes:
+                                if results:
                                     if quality:
                                         for result in results:
                                             info = result["attributes"]
@@ -345,14 +345,10 @@ class UploadChecker:
                                                     "type"
                                                 ],  # Where UNIT3D qualities are stored e.g. remux, encode, etc
                                             ).strip()
-                                            if (
-                                                tracker_quality.lower()
-                                                == quality.lower()
-                                            ):
+
+                                            if tracker_quality.lower() == quality.lower():
                                                 tracker_message = True
-                                                value["trackers"][tracker] = (
-                                                    tracker_message  # True means already on tracker at the same quality
-                                                )
+                                                value["trackers"][tracker] = tracker_message  # True means already on tracker at the same quality
                                                 break
                                             else:
                                                 tracker_message = f"On {tracker}{resolution_msg}, but quality [{quality}] was not found, double check to make sure."
@@ -387,7 +383,7 @@ class UploadChecker:
                                     f"Something went wrong searching {tracker} for {value['title']} ",
                                     e,
                                 )
-                        print("Waiting for cooldown...", self.cooldown)
+                        print("Waiting for cooldown...", self.cooldown, "seconds")
                         time.sleep(self.cooldown)
                     except Exception as e:
                         print(
