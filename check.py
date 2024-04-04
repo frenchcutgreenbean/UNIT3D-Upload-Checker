@@ -382,13 +382,13 @@ class UploadChecker:
                                         print(f"Not on {tracker}")
                                     else:
                                         print(tracker_message)
-                                print("Waiting for cooldown...", self.cooldown)
-                                time.sleep(self.cooldown)
                             except Exception as e:
                                 print(
                                     f"Something went wrong searching {tracker} for {value['title']} ",
                                     e,
                                 )
+                        print("Waiting for cooldown...", self.cooldown)
+                        time.sleep(self.cooldown)
                     except Exception as e:
                         print(
                             f"Something went wrong searching trackers for {value['title']} ",
