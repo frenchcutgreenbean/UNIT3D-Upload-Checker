@@ -271,8 +271,6 @@ class UploadChecker:
                     # Skip unnecessary searches.
                     if value["banned"]:
                         continue
-                    if "trackers" in value:
-                        continue
                     if value["tmdb"] is None:
                         continue
                     if verbose:
@@ -286,6 +284,9 @@ class UploadChecker:
                         # Query each trackers api
                         for tracker in self.enabled_sites:
                             try:
+                                if "trackers" in value:
+                                    if tracker in value["trackers"]:
+                                        continue
                                 url = self.tracker_info[tracker]["url"]
                                 key = self.current_settings["keys"][tracker]
                                 if not key:
@@ -383,15 +384,17 @@ class UploadChecker:
                                 else ""
                             )
                             print(title, year, tracker)
-                            message = (
-                                f"Not on {tracker}"
-                                if info is False
-                                else "Dupe!"
-                                if info is True
-                                else info
-                            )
+                            message = None
+                            if isinstance(info, bool):
+                                if info is False:
+                                    message = f"Not on {tracker}"
+                                elif info is True:
+                                    message = "Dupe!"
+                            else: 
+                                message = info
                             if "Dupe!" in message:
                                 continue
+                            print(info)
                             # Get media info if mediainfo is True and not previously scanned.
                             if mediainfo is True and not media_info:
                                 audio_language, subtitles, video_info, audio_info = get_media_info(file_location)
@@ -422,26 +425,18 @@ class UploadChecker:
                                 "media_info": media_info,
                             }
                             # Add to self.search_data. In the appropriate danger/safe/risky/etc. section.
-                            if " No English subtitles found in media info" in extra_info:
-                                self.search_data[tracker]["danger"][title] = tracker_info
-                                continue
-                            elif tmdb_year == year:
-                                if info is False:
+                            if tmdb_year == year:
+                                if isinstance(info, bool) and info is False:
                                     self.search_data[tracker]["safe"][title] = tracker_info
                                     continue
-                                elif "not on" in info:
+                                elif "English" not in info:
                                     self.search_data[tracker]["risky"][title] = tracker_info
                                     continue
-                            elif info is False:
-                                self.search_data[tracker]["danger"][title] = tracker_info
-                                continue
-                            elif "not on" in info:
-                                self.search_data[tracker]["danger"][title] = tracker_info
-                                continue
+                                else:
+                                    self.search_data[tracker]["danger"][title] = tracker_info
+                                    continue
                             else:
                                 self.search_data[tracker]["danger"][title] = tracker_info
-                            # Save search_data.json
-                            self.save_search_data()
                     except Exception as e:
                             print("Error creating search_data.json:", e)
             self.save_search_data()

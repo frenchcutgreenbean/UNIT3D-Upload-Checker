@@ -17,7 +17,7 @@ class Settings:
             },
             "gg_path": "",  # Path to GG-Bot e.g. /home/user/gg-bot-upload-assistant/ --- Not required only for export_gg_bot()
             "search_cooldown": 5,  # In seconds. Anything less than 3 isn't recommended. 30 requests per minute is max before hit rate limits. - HDVinnie
-            "min_file_size": 200,  # In MB
+            "min_file_size": 800,  # In MB
             "allow_dupes": True,  # If false only check for completely unique movies
             "banned_groups": [],
             "ignored_qualities": [
@@ -107,6 +107,7 @@ class Settings:
                 else:
                     api_key = key
                 self.current_settings["keys"][tracker] = api_key
+                print("Key is valid and was added to", tracker)
             except Exception as e:
                 print("Error searching api:", e)
                 return
@@ -120,7 +121,10 @@ class Settings:
         try:
             settings = self.current_settings
             nicknames = self.tracker_nicknames
-            if target in settings:
+            matching_keys = [key for key in settings.keys() if target in key]
+            if len(matching_keys) == 1:
+                target = matching_keys[0]  # Update target to the full key
+        
                 if isinstance(settings[target], str):
                     settings[target] = value
                     print(value, " Successfully added to ", target)
@@ -171,8 +175,22 @@ class Settings:
                     print("No api key provided")
                 else:
                     self.validate_key(value, target)
+            elif len(matching_keys) > 1:
+                print("Multiple settings match the provided substring. Please provide a more specific target.")
+                print(settings.keys())
+                print("Unique substrings accepted: dir, tmdb, sites, gg, search, size, dupes, banned, qual, keywords")
+                print("If you're trying to add a tracker key, you can use setting-add -t <site> -s <api_key>")
+                print("Accepted sites: ", nicknames.keys())
             else: 
                 print(target, " is not a supported setting")
+                print("Accepted targets: ", settings.keys())
+                print(
+                    "Unique substrings accepted: dir, tmdb, sites, gg, search, size, dupes, banned, qual, keywords"
+                )
+                print(
+                    "If you're trying to add a tracker key, you can use setting-add -t <site> -s <api_key>"
+                )
+                print("Accepted sites: ", nicknames.keys())
                 return
             self.current_settings = settings
             self.write_settings()
