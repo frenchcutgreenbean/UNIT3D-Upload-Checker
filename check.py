@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 import os
 import re
 import csv
@@ -179,6 +180,7 @@ class UploadChecker:
             if not self.scan_data:
                 print("Please scan directories first")
                 return
+            print("Searching TMDB")
             for dir in self.scan_data:
                 if verbose:
                     print("Searching files from: ", dir)
