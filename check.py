@@ -23,6 +23,8 @@ class UploadChecker:
         self.settings = Settings()
         self.update_settings()
         self.tracker_info = self.settings.tracker_info
+        self.output_folder = "./outputs/"
+        self.data_folder = "./data/"
         self.scan_data = {}
         self.search_data = {}
         self.term_size = os.get_terminal_size()
@@ -41,14 +43,14 @@ class UploadChecker:
 
         # Create database files if they don't exist
         try:
-            if not os.path.exists("database.json"):
-                with open("database.json", "w") as outfile:
+            if not os.path.exists(f"{self.data_folder}database.json"):
+                with open(f"{self.data_folder}database.json", "w") as outfile:
                     json.dump({}, outfile)
-            if not os.path.exists("search_data.json"):
-                with open("search_data.json", "w") as outfile:
+            if not os.path.exists(f"{self.data_folder}search_data.json"):
+                with open(f"{self.data_folder}search_data.json", "w") as outfile:
                     json.dump(self.search_data, outfile)
-            self.database_location = "database.json"
-            self.search_data_location = "search_data.json"
+            self.database_location = f"{self.data_folder}database.json"
+            self.search_data_location = f"{self.data_folder}search_data.json"
         except Exception as e:
             print("Error initializing json files: ", e)
 
@@ -67,8 +69,9 @@ class UploadChecker:
     def scan_directories(self, verbose=False):
         try:
             print("Scanning Directories")
-            if not self.directories or not self.directories[0]:
-                print("Please update directories in main.py")
+            if not self.directories:
+                print("Please add a directory")
+                print("setting-add -t dir -s <dir>")
                 return
             # loop through provided directories
             for dir in self.directories:
@@ -268,6 +271,7 @@ class UploadChecker:
                     )
                     if not input("Continue? [y/n] ").lower().startswith("y"):
                         return
+
             for dir in self.scan_data:
                 for key, value in self.scan_data[dir].items():
                     # Skip unnecessary searches.
@@ -289,7 +293,9 @@ class UploadChecker:
                                 if "trackers" in value:
                                     if tracker in value["trackers"]:
                                         if verbose:
-                                            print(f"{tracker} already searched. For {value['title']} Skipping.")
+                                            print(
+                                                f"{self.output_folder}{tracker} already searched. For {value['title']} Skipping."
+                                            )
                                         continue
                                 url = self.tracker_info[tracker]["url"]
                                 key = self.current_settings["keys"][tracker]
@@ -309,6 +315,8 @@ class UploadChecker:
                                     else ""
                                 )
                                 url = f"{url}api/torrents/filter?tmdbId={tmdb}&categories[]=1&api_token={key}{resolution_query}"
+                                if verbose:
+                                    print(url)
                                 response = requests.get(url)
                                 res_data = json.loads(response.content)
                                 results = res_data["data"] if res_data["data"] else None
@@ -462,18 +470,37 @@ class UploadChecker:
                                 "media_info": media_info,
                             }
                             # Add to self.search_data. In the appropriate danger/safe/risky/etc. section.
-                            if tmdb_year == year:
-                                if "English" in extra_info:
+                            if tmdb_year == year:  # Matched years
+                                if (
+                                    "English" in extra_info
+                                ):  # No English subtitles or audio
                                     self.search_data[tracker]["danger"][title] = (
                                         tracker_info
                                     )
                                     continue
-                                if isinstance(info, bool) and info is False:
+                                if (
+                                    isinstance(info, bool) and info is False
+                                ):  # Not on tracker
                                     self.search_data[tracker]["safe"][title] = (
                                         tracker_info
                                     )
                                     continue
-                                if "Not on" in info:
+
+                                if "couldn't" in info:  # Couldn't find source
+                                    self.search_data[tracker]["danger"][title] = (
+                                        tracker_info
+                                    )
+                                    continue
+                                if (
+                                    "quality" in info
+                                ):  # On tracker at given resolution but quality might be new
+                                    self.search_data[tracker]["risky"][title] = (
+                                        tracker_info
+                                    )
+                                    continue
+                                if (
+                                    "Not on" in info
+                                ):  # Not on tracker at given resolution
                                     self.search_data[tracker]["safe"][title] = (
                                         tracker_info
                                     )
@@ -483,12 +510,7 @@ class UploadChecker:
                                         tracker_info
                                     )
                                     continue
-                            elif "quality" in info:
-                                self.search_data[tracker]["risky"][title] = (
-                                    tracker_info
-                                )
-                                continue
-                            else:
+                            else:  # Not matched years possible mismatch should always be manually searched
                                 self.search_data[tracker]["danger"][title] = (
                                     tracker_info
                                 )
@@ -537,6 +559,7 @@ class UploadChecker:
 
     # Export gg-bot auto_upload commands.
     def export_gg(self):
+        # For gg-bot -t flag
         TRACKER_MAP = {
             "aither": "ATH",
             "blutopia": "BLU",
@@ -546,7 +569,7 @@ class UploadChecker:
         try:
             for tracker, data in self.search_data.items():
                 if data["safe"]:
-                    with open(f"{tracker}_gg.txt", "w") as f:
+                    with open(f"{self.output_folder}{tracker}_gg.txt", "w") as f:
                         f.write("")
                     platform = sys.platform
                     py_version = "python3" if "linux" in platform else "py"
@@ -562,10 +585,15 @@ class UploadChecker:
                             + " -t "
                             + tracker_flag
                         )
-                        with open(f"{tracker}_gg.txt", "a") as append:
+                        with open(
+                            f"{self.output_folder}{tracker}_gg.txt", "a"
+                        ) as append:
                             append.write(line + "\n")
 
-                print("Exported gg-bot auto_upload commands.", f"{tracker}_gg.txt")
+                print(
+                    "Exported gg-bot auto_upload commands.",
+                    f"{self.output_folder}{tracker}_gg.txt",
+                )
 
         except Exception as e:
             raise e
@@ -575,12 +603,14 @@ class UploadChecker:
         try:
             # Loop through each tracker to output separate files
             for tracker, data in self.search_data.items():
-                with open(f"{tracker}_uploads.txt", "w") as f:
+                with open(f"{self.output_folder}{tracker}_uploads.txt", "w") as f:
                     f.write("")
                 # Loop through each safety/danger/risky/etc. section
                 for safety, d in data.items():
                     if d:
-                        with open(f"{tracker}_uploads.txt", "a") as file:
+                        with open(
+                            f"{self.output_folder}{tracker}_uploads.txt", "a"
+                        ) as file:
                             file.write(safety + "\n")
                     # Loop through each file in the section
                     for k, v in d.items():
@@ -626,7 +656,9 @@ class UploadChecker:
         Extra Info: {extra_info}
         Media Info: {clean_mi}
         """
-                        with open(f"{tracker}_uploads.txt", "a") as f:
+                        with open(
+                            f"{self.output_folder}{tracker}_uploads.txt", "a"
+                        ) as f:
                             f.write(line + "\n")
                 print(f"Manual info saved to {tracker}_uploads.txt")
         except Exception as e:
@@ -637,7 +669,10 @@ class UploadChecker:
         try:
             for tracker, data in self.search_data.items():
                 with open(
-                    f"{tracker}_uploads.csv", "w", newline="", encoding="utf-8"
+                    f"{self.output_folder}{tracker}_uploads.csv",
+                    "w",
+                    newline="",
+                    encoding="utf-8",
                 ) as csvfile:
                     fieldnames = [
                         "Safety",

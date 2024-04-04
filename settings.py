@@ -5,6 +5,7 @@ import requests
 
 class Settings:
     def __init__(self):
+        self.data_folder = "./data/"
         self.default_settings = {
             "directories": [],
             "tmdb_key": "",  # https://www.themoviedb.org/settings/api
@@ -49,14 +50,14 @@ class Settings:
         try:
             # Creating settings.json with default settings
             if (
-                not os.path.exists("settings.json")
-                or os.path.getsize("settings.json") < 10
+                not os.path.exists(f"{self.data_folder}settings.json")
+                or os.path.getsize(f"{self.data_folder}settings.json") < 10
             ):
-                with open("settings.json", "w") as outfile:
+                with open(f"{self.data_folder}settings.json", "w") as outfile:
                     json.dump(self.default_settings, outfile)
             # Load settings.json
-            if os.path.getsize("settings.json") > 10:
-                with open("settings.json", "r") as file:
+            if os.path.getsize(f"{self.data_folder}settings.json") > 10:
+                with open(f"{self.data_folder}settings.json", "r") as file:
                     self.current_settings = json.load(file)
                     self.validate_directories()
             # Set the settings to our class
@@ -235,14 +236,14 @@ class Settings:
 
     def write_settings(self):
         try:
-            with open("settings.json", "w") as outfile:
+            with open(f"{self.data_folder}settings.json", "w") as outfile:
                 json.dump(self.current_settings, outfile)
         except Exception as e:
             print("Error writing settings: ", e)
 
     def reset_settings(self):
         try:
-            with open("settings.json", "w") as outfile:
+            with open(f"{self.data_folder}settings.json", "w") as outfile:
                 json.dump(self.default_settings, outfile)
         except Exception as e:
             print("Error resetting settings: ", e)

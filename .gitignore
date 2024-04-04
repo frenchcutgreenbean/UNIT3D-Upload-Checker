@@ -1,11 +1,4 @@
-database.json
-search_data.json
-settings.json
-manual.txt
-manual.csv
-l4g.txt
+data/*
+outputs/*
 *.pyc
 PTN/__pycache__
-*gg.txt
-*uploads.txt
-*uploads.csv
