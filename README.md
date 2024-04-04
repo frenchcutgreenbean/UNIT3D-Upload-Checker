@@ -33,12 +33,6 @@ chmod +x check.py
 
 ## Usage
 
-### Run to gen settings.json
-
-```sh
- ./check.py
-```
-
 ### Edit settings
 
 #### Settings needed to work
@@ -49,6 +43,12 @@ CLI Command:
 
 ```sh
 ./check.py setting-add --target dir --set /home/movies/
+```
+
+windows
+
+```sh
+py .\check.py setting-add --t dir -s C:\Users\user\movies
 ```
 
 -t and -s accepted
@@ -78,7 +78,7 @@ You can target and edit most settings following the same structure. Or you can m
 
 "run-all" Scans, Searches and exports possible uploads
 
-"clean-data" Empties database.json and blu_data.json
+"clear-data" Empties database.json and blu_data.json
 
 "add-setting" Adds or edits a setting. --target setting_name --set setting_value
 
@@ -94,7 +94,7 @@ You can target and edit most settings following the same structure. Or you can m
 
 "save" Creates search_data.json
 
-"gg" Creates l4g commands txt file
+"gg" Creates gg auto_upload commands txt file
 
 "txt" Creates txt file with useful information for possible uploads
 
