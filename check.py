@@ -72,7 +72,7 @@ class UploadChecker:
             if not self.directories:
                 print("Please add a directory")
                 print("setting-add -t dir -s <dir>")
-                return
+                return False
             # loop through provided directories
             for dir in self.directories:
                 # check if the directory has previously scanned data
@@ -182,12 +182,12 @@ class UploadChecker:
         try:
             if not self.scan_data:
                 print("Please scan directories first")
-                return
+                return False
             print("Searching TMDB")
             if not self.tmdb_key:
                 print("Please add a TMDB key")
                 print("setting-add -t tmdb -s <key>")
-                return
+                return False
             for dir in self.scan_data:
                 if verbose:
                     print("Searching files from: ", dir)
@@ -274,7 +274,7 @@ class UploadChecker:
                         "If you want to use this tracker, add an API key to the settings."
                     )
                     if not input("Continue? [y/n] ").lower().startswith("y"):
-                        return
+                        return False
 
             for dir in self.scan_data:
                 for key, value in self.scan_data[dir].items():
@@ -554,8 +554,14 @@ class UploadChecker:
 
     # Run main functions
     def run_all(self, mediainfo=True, verbose=False):
-        self.scan_directories(verbose)
-        self.get_tmdb(verbose)
+        check_1 = self.scan_directories(verbose)
+        if check_1 is False:
+            return
+        check_2 = self.get_tmdb(verbose)
+
+        if check_2 is False:
+            return
+
         self.search_trackers(verbose)
         self.create_search_data(mediainfo)
         self.export_gg()
