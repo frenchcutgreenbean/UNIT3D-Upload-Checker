@@ -380,6 +380,8 @@ class UploadChecker:
                                         print(f"Not on {tracker}")
                                     else:
                                         print(tracker_message)
+                                
+                                time.sleep(self.cooldown)
                             except Exception as e:
                                 print(
                                     f"Something went wrong searching {tracker} for {value['title']} ",
@@ -390,7 +392,6 @@ class UploadChecker:
                             f"Something went wrong searching trackers for {value['title']} ",
                             e,
                         )
-                    time.sleep(self.cooldown)
                     self.save_database()
             self.save_database()
         except Exception as e:
@@ -660,7 +661,7 @@ class UploadChecker:
                             f"{self.output_folder}{tracker}_uploads.txt", "a"
                         ) as f:
                             f.write(line + "\n")
-                print(f"Manual info saved to {tracker}_uploads.txt")
+                print(f"Manual info saved to {self.output_folder}{tracker}_uploads.txt")
         except Exception as e:
             print("Error writing uploads.txt: ", e)
             print(traceback.format_exc())
@@ -742,7 +743,7 @@ class UploadChecker:
                                         "Media Info": clean_mi,
                                     }
                                 )
-            print(f"Manual info saved to {tracker}_uploads.csv")
+            print(f"Manual info saved to {self.output_folder}{tracker}_uploads.csv")
         except Exception as e:
             print("Error writing uploads.csv: ", e)
 
