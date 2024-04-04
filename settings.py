@@ -87,6 +87,20 @@ class Settings:
         except Exception as e:
             print("Error Validating Directories:", e)
     
+    def validate_tmdb(self, key):
+        try:
+            url = f"https://api.themoviedb.org/3/configuration?api_key={key}"
+            response = requests.get(url)
+            if response.history:
+                print("Invalid API Key")
+                return
+            else:
+                self.current_settings["tmdb_key"] = key
+                print("Key is valid and was added to tmdb")
+        except Exception as e:
+            print("Error searching api:", e)
+            return
+
     def validate_key(self, key, target):
         api_key = None
         tracker = None
@@ -125,7 +139,10 @@ class Settings:
             matching_keys = [key for key in settings.keys() if target in key]
             if len(matching_keys) == 1:
                 target = matching_keys[0]  # Update target to the full key
-        
+                if target == "tmdb_key":
+                    self.validate_tmdb(value)
+                    settings[target] = value
+                    return
                 if isinstance(settings[target], str):
                     settings[target] = value
                     print(value, " Successfully added to ", target)
