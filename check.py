@@ -199,7 +199,7 @@ class UploadChecker:
                     year = value["year"] if value["year"] else ""
                     year_url = f"&year={year}" if year else ""
                     # This seems possibly problematic
-                    clean_title = re.sub(r"[^a-zA-Z]", " ", title)
+                    clean_title = re.sub(r"[^0-9a-zA-Z]", " ", title)
                     query = clean_title.replace(" ", "%20")
                     try:
                         url = f"https://api.themoviedb.org/3/search/movie?query={query}&include_adult=false&language=en-US&page=1&api_key={self.tmdb_key}{year_url}"
@@ -263,9 +263,11 @@ class UploadChecker:
                 api_key = self.current_settings["keys"][t]
                 if not api_key:
                     print(f"No API key for {t} found.")
-                    print("If you want to use this tracker, add an API key to the settings.")
+                    print(
+                        "If you want to use this tracker, add an API key to the settings."
+                    )
                     if not input("Continue? [y/n] ").lower().startswith("y"):
-                        continue
+                        return
             for dir in self.scan_data:
                 for key, value in self.scan_data[dir].items():
                     # Skip unnecessary searches.
@@ -286,13 +288,21 @@ class UploadChecker:
                             try:
                                 if "trackers" in value:
                                     if tracker in value["trackers"]:
+                                        if verbose:
+                                            print(f"{tracker} already searched. For {value['title']} Skipping.")
                                         continue
                                 url = self.tracker_info[tracker]["url"]
                                 key = self.current_settings["keys"][tracker]
                                 if not key:
-                                    print(f"No API key for {tracker} found. Skipping.") 
+                                    print(f"No API key for {tracker} found. Skipping.")
                                     continue
-                                tracker_resolution = self.tracker_info[tracker]["resolution_map"][resolution] if resolution else None
+                                tracker_resolution = (
+                                    self.tracker_info[tracker]["resolution_map"][
+                                        resolution
+                                    ]
+                                    if resolution
+                                    else None
+                                )
                                 resolution_query = (
                                     f"&resolutions[0]={tracker_resolution}"
                                     if tracker_resolution
@@ -302,28 +312,43 @@ class UploadChecker:
                                 response = requests.get(url)
                                 res_data = json.loads(response.content)
                                 results = res_data["data"] if res_data["data"] else None
-                                resolution_msg = f" at {resolution} " if resolution else ""
+                                resolution_msg = (
+                                    f" at {resolution} " if resolution else ""
+                                )
                                 if resolution and verbose:
                                     print("Resolution detected: ", resolution)
                                 tracker_message = None
                                 if results and not self.allow_dupes:
-                                    print("Duplicate results detected and allow_dupes is set to False. Banning.")
+                                    print(
+                                        "Duplicate results detected and allow_dupes is set to False. Banning."
+                                    )
                                     value["trackers"][tracker] = True
                                     continue
                                 if results and self.allow_dupes:
                                     if quality:
                                         for result in results:
-                                            info = result["attributes"] 
+                                            info = result["attributes"]
                                             tracker_quality = re.sub(
-                                                r"[^a-zA-Z]", "", info["type"] # Where UNIT3D qualities are stored e.g. remux, encode, etc
+                                                r"[^a-zA-Z]",
+                                                "",
+                                                info[
+                                                    "type"
+                                                ],  # Where UNIT3D qualities are stored e.g. remux, encode, etc
                                             ).strip()
-                                            if tracker_quality.lower() == quality.lower():
+                                            if (
+                                                tracker_quality.lower()
+                                                == quality.lower()
+                                            ):
                                                 tracker_message = True
-                                                value["trackers"][tracker] = tracker_message # True means already on tracker at the same quality
+                                                value["trackers"][tracker] = (
+                                                    tracker_message  # True means already on tracker at the same quality
+                                                )
                                                 break
                                             else:
                                                 tracker_message = f"On {tracker}{resolution_msg}, but quality [{quality}] was not found, double check to make sure."
-                                                value["trackers"][tracker] = tracker_message
+                                                value["trackers"][tracker] = (
+                                                    tracker_message
+                                                )
                                     elif tracker_resolution:
                                         tracker_message = f"Source was found on {tracker} at {resolution}, but couldn't determine input source quality. Manual search required."
                                         value["trackers"][tracker] = tracker_message
@@ -331,11 +356,15 @@ class UploadChecker:
                                         tracker_message = f"Source was found on {tracker}, but couldn't determine input source quality or resolution. Manual search required."
                                         value["trackers"][tracker] = tracker_message
                                 elif resolution:
-                                    tracker_message = f"Not on {tracker}{resolution_msg}"
+                                    tracker_message = (
+                                        f"Not on {tracker}{resolution_msg}"
+                                    )
                                     value["trackers"][tracker] = tracker_message
                                 else:
                                     tracker_message = False
-                                    value["trackers"][tracker] = tracker_message # False means not on tracker
+                                    value["trackers"][tracker] = (
+                                        tracker_message  # False means not on tracker
+                                    )
                                 if verbose:
                                     if tracker_message is True:
                                         print(f"Already on {tracker}")
@@ -344,7 +373,10 @@ class UploadChecker:
                                     else:
                                         print(tracker_message)
                             except Exception as e:
-                                print(f"Something went wrong searching {tracker} for {value['title']} ", e)
+                                print(
+                                    f"Something went wrong searching {tracker} for {value['title']} ",
+                                    e,
+                                )
                     except Exception as e:
                         print(
                             f"Something went wrong searching trackers for {value['title']} ",
@@ -390,16 +422,19 @@ class UploadChecker:
                                     message = f"Not on {tracker}"
                                 elif info is True:
                                     message = "Dupe!"
-                            else: 
+                            else:
                                 message = info
                             if "Dupe!" in message:
                                 continue
-                            print(info)
                             # Get media info if mediainfo is True and not previously scanned.
                             if mediainfo is True and not media_info:
-                                audio_language, subtitles, video_info, audio_info = get_media_info(file_location)
+                                audio_language, subtitles, video_info, audio_info = (
+                                    get_media_info(file_location)
+                                )
                                 if "en" not in audio_language and "en" not in subtitles:
-                                    extra_info += " No English subtitles found in media info"
+                                    extra_info += (
+                                        " No English subtitles found in media info"
+                                    )
                                 media_info = {
                                     "audio_language(s)": audio_language,
                                     "subtitle(s)": subtitles,
@@ -410,7 +445,9 @@ class UploadChecker:
                                 audio_language = media_info["audio_language(s)"]
                                 subtitles = media_info["subtitle(s)"]
                                 if "en" not in audio_language and "en" not in subtitles:
-                                    extra_info += " No English subtitles found in media info"
+                                    extra_info += (
+                                        " No English subtitles found in media info"
+                                    )
                             # Create dictionary for each tracker.
                             tracker_info = {
                                 "file_location": file_location,
@@ -419,26 +456,44 @@ class UploadChecker:
                                 "resolution": resolution,
                                 "tmdb": tmdb,
                                 "tmdb_year": tmdb_year,
-                                "message": message,
+                                "message": message.strip(),
                                 "file_size": file_size,
-                                "extra_info": extra_info,
+                                "extra_info": extra_info.strip(),
                                 "media_info": media_info,
                             }
                             # Add to self.search_data. In the appropriate danger/safe/risky/etc. section.
                             if tmdb_year == year:
-                                if isinstance(info, bool) and info is False:
-                                    self.search_data[tracker]["safe"][title] = tracker_info
+                                if "English" in extra_info:
+                                    self.search_data[tracker]["danger"][title] = (
+                                        tracker_info
+                                    )
                                     continue
-                                elif "English" not in info:
-                                    self.search_data[tracker]["risky"][title] = tracker_info
+                                if isinstance(info, bool) and info is False:
+                                    self.search_data[tracker]["safe"][title] = (
+                                        tracker_info
+                                    )
+                                    continue
+                                if "Not on" in info:
+                                    self.search_data[tracker]["safe"][title] = (
+                                        tracker_info
+                                    )
                                     continue
                                 else:
-                                    self.search_data[tracker]["danger"][title] = tracker_info
+                                    self.search_data[tracker]["danger"][title] = (
+                                        tracker_info
+                                    )
                                     continue
+                            elif "quality" in info:
+                                self.search_data[tracker]["risky"][title] = (
+                                    tracker_info
+                                )
+                                continue
                             else:
-                                self.search_data[tracker]["danger"][title] = tracker_info
+                                self.search_data[tracker]["danger"][title] = (
+                                    tracker_info
+                                )
                     except Exception as e:
-                            print("Error creating search_data.json:", e)
+                        print("Error creating search_data.json:", e)
             self.save_search_data()
         except Exception as e:
             print("Error creating search_data.json", e)
@@ -486,11 +541,10 @@ class UploadChecker:
             "aither": "ATH",
             "blutopia": "BLU",
             "fearnopeer": "FNP",
-            "reelflix": "RFX"
+            "reelflix": "RFX",
         }
         try:
             for tracker, data in self.search_data.items():
-                print(tracker)
                 if data["safe"]:
                     with open(f"{tracker}_gg.txt", "w") as f:
                         f.write("")
@@ -498,7 +552,7 @@ class UploadChecker:
                     py_version = "python3" if "linux" in platform else "py"
                     tracker_flag = TRACKER_MAP[tracker]
 
-                    for file, value in data["safe"].items():                    
+                    for file, value in data["safe"].items():
                         line = (
                             py_version
                             + " "
@@ -511,11 +565,10 @@ class UploadChecker:
                         with open(f"{tracker}_gg.txt", "a") as append:
                             append.write(line + "\n")
 
-
+                print("Exported gg-bot auto_upload commands.", f"{tracker}_gg.txt")
 
         except Exception as e:
             raise e
-
 
     # Export possible uploads to manual.txt
     def export_txt(self):
@@ -544,7 +597,9 @@ class UploadChecker:
                         tmdb_search = f"https://www.themoviedb.org/movie/{tmdb}"
                         tracker_url = self.tracker_info[tracker]["url"]
                         tracker_tmdb = f"{tracker_url}torrents?view=list&tmdbId={tmdb}"
-                        tracker_string = f"{tracker_url}torrents?view=list&name={url_query}"
+                        tracker_string = (
+                            f"{tracker_url}torrents?view=list&name={url_query}"
+                        )
                         media_info = v["media_info"] if "media_info" in v else "None"
                         clean_mi = ""
                         if media_info:
@@ -573,7 +628,7 @@ class UploadChecker:
         """
                         with open(f"{tracker}_uploads.txt", "a") as f:
                             f.write(line + "\n")
-                print("Manual info saved to uploads.txt")
+                print(f"Manual info saved to {tracker}_uploads.txt")
         except Exception as e:
             print("Error writing uploads.txt: ", e)
             print(traceback.format_exc())
@@ -581,7 +636,9 @@ class UploadChecker:
     def export_csv(self):
         try:
             for tracker, data in self.search_data.items():
-                with open(f"{tracker}_uploads.csv", "w", newline="", encoding="utf-8") as csvfile:
+                with open(
+                    f"{tracker}_uploads.csv", "w", newline="", encoding="utf-8"
+                ) as csvfile:
                     fieldnames = [
                         "Safety",
                         "Movie Title",
@@ -614,14 +671,23 @@ class UploadChecker:
                                 year = v["year"]
                                 tmdb_search = f"https://www.themoviedb.org/movie/{tmdb}"
                                 tracker_url = self.tracker_info[tracker]["url"]
-                                tracker_tmdb = f"{tracker_url}torrents?view=list&tmdbId={tmdb}"
-                                tracker_string = f"{tracker_url}torrents?view=list&name={url_query}"
-                                media_info = v["media_info"] if v["media_info"] else "None"
+                                tracker_tmdb = (
+                                    f"{tracker_url}torrents?view=list&tmdbId={tmdb}"
+                                )
+                                tracker_string = (
+                                    f"{tracker_url}torrents?view=list&name={url_query}"
+                                )
+                                media_info = (
+                                    v["media_info"] if v["media_info"] else "None"
+                                )
                                 clean_mi = ""
                                 if media_info:
-                                    audio_language, audio_info, subtitles, video_info = (
-                                        format_media_info(media_info)
-                                    )
+                                    (
+                                        audio_language,
+                                        audio_info,
+                                        subtitles,
+                                        video_info,
+                                    ) = format_media_info(media_info)
                                     clean_mi = f"Language(s): {audio_language}, Subtitle(s): {subtitles}, Audio Info: {audio_info}, Video Info: {video_info}"
 
                                 writer.writerow(
@@ -641,7 +707,7 @@ class UploadChecker:
                                         "Media Info": clean_mi,
                                     }
                                 )
-            print("Manual info saved to uploads.csv")
+            print(f"Manual info saved to {tracker}_uploads.csv")
         except Exception as e:
             print("Error writing uploads.csv: ", e)
 
@@ -726,7 +792,7 @@ parser.add_argument(
 parser.add_argument(
     "--target",
     "-t",
-    help="Specify the target setting to update." 
+    help="Specify the target setting to update."
     "\nValid targets: directories, tmdb_key, enabled_sites, gg_path, search_cooldown, min_file_size, allow_dupes, banned_groups, ignored_qualities, ignored_keywords"
     "\nYou can also use setting-add to add api keys: -t aith, blu, fnp, rfx. followed by -s <key>",
 )
@@ -763,4 +829,3 @@ if args.command in {"scan", "tmdb", "search", "run-all"}:
 
 # Call the function with appropriate arguments
 func(**func_args)
-

@@ -142,7 +142,7 @@ class Settings:
                         if value in nicknames:
                             tracker = nicknames[value]
                             if not self.current_settings["keys"].get(tracker):
-                                print("There is currently no api key for", value, "\nAdd one using setting-add <site> <api_key>", f"\ne.g. setting-add {value} <api_key>")
+                                print("There is currently no api key for", value, "\nAdd one using setting-add -t <site> -s <api_key>", f"\ne.g. setting-add -t {value} -s <api_key>")
                         else:
                             print(value, " is not a supported site") 
                             return
