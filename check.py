@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 import os
 import re
-import argcomplete
 import csv
 import glob
 import sys
@@ -868,7 +867,6 @@ parser.add_argument(
     default=False,
 )
 
-argcomplete.autocomplete(parser)
 args = parser.parse_args()
 
 # Get the appropriate function based on the command
