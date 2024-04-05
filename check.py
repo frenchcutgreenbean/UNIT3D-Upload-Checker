@@ -299,6 +299,8 @@ class UploadChecker:
                         continue
                     print("=" * self.term_size.columns)
                     print(f"Searching Trackers for {value['title']}")
+                    if verbose:
+                        print(f"Filename: {value['file_name']}")
                     tmdb = value["tmdb"]
                     quality = value["quality"] if value["quality"] else None
                     resolution = value["resolution"] if value["resolution"] else None
