@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 import os
 import re
+import argcomplete
 import csv
 import glob
 import sys
@@ -308,6 +309,7 @@ class UploadChecker:
                         # Query each trackers api
                         for tracker in self.enabled_sites:
                             try:
+                                # The file already contains the results from a given tracker. Skip it.
                                 if tracker in value["trackers"]:
                                     if verbose:
                                         print(
@@ -319,28 +321,12 @@ class UploadChecker:
                                 if not key:
                                     print(f"No API key for {tracker} found. Skipping.")
                                     continue
-                                tracker_resolution = (
-                                    self.tracker_info[tracker]["resolution_map"][
-                                        resolution
-                                    ]
-                                    if resolution
-                                    else None
-                                )
-                                resolution_query = (
-                                    f"&resolutions[0]={tracker_resolution}"
-                                    if tracker_resolution
-                                    else ""
-                                )
-                                url = f"{url}api/torrents/filter?tmdbId={tmdb}&categories[]=1&api_token={key}{resolution_query}"
+                                url = f"{url}api/torrents/filter?tmdbId={tmdb}&categories[]=1&api_token={key}"
                                 response = requests.get(url)
                                 res_data = json.loads(response.content)
                                 results = res_data["data"] if res_data["data"] else None
-                                resolution_msg = (
-                                    f" at {resolution} " if resolution else ""
-                                )
-                                if resolution and verbose:
-                                    print("Resolution detected: ", resolution)
                                 tracker_message = None
+                                # If there are any results and user has allow_dupes set to False, then banning.
                                 if results and not self.allow_dupes:
                                     print(
                                         "Duplicate results detected and allow_dupes is set to False. Banning."
@@ -348,47 +334,71 @@ class UploadChecker:
                                     value["trackers"][tracker] = True
                                     continue
                                 if results:
-                                    if quality:
-                                        for result in results:
-                                            info = result["attributes"]
-                                            tracker_quality = re.sub(
-                                                r"[^a-zA-Z]",
-                                                "",
-                                                info[
-                                                    "type"
-                                                ],  # Where UNIT3D qualities are stored e.g. remux, encode, etc
-                                            ).strip()
+                                    loop_results = {}
+                                    for i, result in enumerate(results):
+                                        dupe_res = False
+                                        dupe_quality = False
+                                        # Get info from tracker.
+                                        info = result["attributes"]
+                                        tracker_resolution = info["resolution"]
+                                        tracker_quality = re.sub(
+                                            r"[^a-zA-Z]",
+                                            "",
+                                            info["type"],
+                                        ).strip()
+                                        # Store resolutions for comparison
+                                        # Remove all non-numeric characters for easier comparison (e.g. 1080p from file incorrectly named.)
+                                        clean_tracker_resolution = "".join(
+                                            re.findall(r"\d+", tracker_resolution)
+                                        )
+                                        clean_file_resolution = (
+                                            "".join(re.findall(r"\d+", resolution))
+                                            if resolution
+                                            else None
+                                        )
+                                        # The resolutions are the same
+                                        if (
+                                            clean_file_resolution
+                                            and clean_file_resolution
+                                            == clean_tracker_resolution
+                                        ):
+                                            dupe_res = True
 
-                                            if (
-                                                tracker_quality.lower()
-                                                == quality.lower()
-                                            ):
-                                                tracker_message = True
-                                                value["trackers"][tracker] = (
-                                                    tracker_message  # True means already on tracker at the same quality
-                                                )
-                                                break
-                                            else:
-                                                tracker_message = f"On {tracker}{resolution_msg}, but quality [{quality}] was not found, double check to make sure."
-                                                value["trackers"][tracker] = (
-                                                    tracker_message
-                                                )
-                                    elif tracker_resolution:
-                                        tracker_message = f"Source was found on {tracker} at {resolution}, but couldn't determine input source quality. Manual search required."
-                                        value["trackers"][tracker] = tracker_message
+                                        if (
+                                            quality
+                                            and tracker_quality.lower()
+                                            == quality.lower()
+                                        ):
+                                            dupe_quality = True
+                                        # The tracker has a similar release already
+                                        # We can break the loop.
+                                        if dupe_res and dupe_quality:
+                                            tracker_message = True
+                                            value["trackers"][tracker] = tracker_message
+                                            break
+                                        # The tracker has a release with the same resolution, but couldn't determine input source quality.
+                                        elif (dupe_res and not quality) or (
+                                            quality and dupe_quality and not resolution
+                                        ):
+                                            # This could probably be set to True, but I'm not sure.
+                                            tracker_message = f"Source was found on {tracker}, but couldn't get enough info from filename. Manual search required."
+                                            value["trackers"][tracker] = tracker_message
+                                            break
+                                        elif dupe_res and quality:
+                                            loop_message = "Resolution match, but could be a new quality. Manual search recommended."
+                                            loop_results[i] = loop_message
                                     else:
-                                        tracker_message = f"Source was found on {tracker}, but couldn't determine input source quality or resolution. Manual search required."
-                                        value["trackers"][tracker] = tracker_message
-                                elif resolution:
-                                    tracker_message = (
-                                        f"Not on {tracker}{resolution_msg}"
-                                    )
-                                    value["trackers"][tracker] = tracker_message
+                                        if loop_results:
+                                            tracker_message = f"Resolution found on {tracker}, but could be a new quality. Manual search recommended."
+                                            value["trackers"][tracker] = tracker_message
+                                        # No results found, not on tracker.
+                                        else:
+                                            tracker_message = False
+                                            value["trackers"][tracker] = tracker_message
                                 else:
+                                    # No results found, not on tracker.
                                     tracker_message = False
-                                    value["trackers"][tracker] = (
-                                        tracker_message  # False means not on tracker
-                                    )
+                                    value["trackers"][tracker] = tracker_message
                                 if verbose:
                                     if tracker_message is True:
                                         print(f"Already on {tracker}")
@@ -487,47 +497,40 @@ class UploadChecker:
                                 "media_info": media_info,
                             }
                             # Add to self.search_data. In the appropriate danger/safe/risky/etc. section.
-                            if tmdb_year == year:  # Matched years
-                                if (
-                                    "English" in extra_info
-                                ):  # No English subtitles or audio
+                            # Matched years
+                            if tmdb_year == year:
+                                # No English subtitles or audio
+                                if "English" in extra_info:
                                     self.search_data[tracker]["danger"][title] = (
                                         tracker_info
                                     )
                                     continue
-                                if (
-                                    isinstance(info, bool) and info is False
-                                ):  # Not on tracker
+                                # Not on tracker
+                                if isinstance(info, bool) and info is False:
                                     self.search_data[tracker]["safe"][title] = (
                                         tracker_info
                                     )
                                     continue
-
-                                if "couldn't" in info:  # Couldn't find source
+                                # On tracker but either couldn't get resolution or quality from filename.
+                                if "required" in info:
                                     self.search_data[tracker]["danger"][title] = (
                                         tracker_info
                                     )
                                     continue
-                                if (
-                                    "quality" in info
-                                ):  # On tracker at given resolution but quality might be new
+                                # On tracker at given resolution but quality might be new
+                                if "recommended" in info:
                                     self.search_data[tracker]["risky"][title] = (
                                         tracker_info
                                     )
                                     continue
-                                if (
-                                    "Not on" in info
-                                ):  # Not on tracker at given resolution
-                                    self.search_data[tracker]["safe"][title] = (
-                                        tracker_info
-                                    )
-                                    continue
+                                # Probably unnecessary
                                 else:
                                     self.search_data[tracker]["danger"][title] = (
                                         tracker_info
                                     )
                                     continue
-                            else:  # Not matched years possible mismatch should always be manually searched
+                            # TMDB + Filename year mismatch or simply no year in filename.
+                            else:  
                                 self.search_data[tracker]["danger"][title] = (
                                     tracker_info
                                 )
@@ -822,6 +825,7 @@ def parse_file(name):
 ch = UploadChecker()
 parser = argparse.ArgumentParser()
 
+
 FUNCTION_MAP = {
     "scan": ch.scan_directories,
     "tmdb": ch.get_tmdb,
@@ -864,7 +868,7 @@ parser.add_argument(
     default=False,
 )
 
-
+argcomplete.autocomplete(parser)
 args = parser.parse_args()
 
 # Get the appropriate function based on the command
