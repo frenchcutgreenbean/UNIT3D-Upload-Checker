@@ -153,6 +153,7 @@ Q: What puts a movie in "danger"?
 Q: Why is tracker x not supported?
 
 - A: I only added trackers I am on. Pull requests are welcomed!
+
 Q: How can I add support for different UNIT3D trackers?
 
 - A: First you need to edit tracker_info.json. Then, append the relevant details in settings.py. self.tracker_nicknames & self.default_settings["keys"]
