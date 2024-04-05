@@ -40,6 +40,14 @@ chmod +x check.py
 
 ![csv output](https://i.ibb.co/SmkvfV1/2024-04-03-19-38-21.png)
 
+### TXT
+
+<https://github.com/frenchcutgreenbean/UNIT3D-Upload-Checker/blob/main/manual_txt_example.txt>
+
+### GG
+
+<https://github.com/frenchcutgreenbean/UNIT3D-Upload-Checker/blob/main/manual_bot_example.txt>
+
 ## Usage
 
 ### Edit settings
@@ -89,55 +97,75 @@ You can target and edit most settings following the same structure. Or you can m
 
 "clear-data" Empties database.json and blu_data.json
 
-"add-setting" Adds or edits a setting. --target setting_name --set setting_value
+### Settings specific
 
-"setting" Prints a given settings value. --target setting_name
+All settings can be targeted by unique substrings. For example "dir" for "directories" and "sites" for "enabled_sites".
+
+"setting" Prints a given settings value.
+
+```sh
+./check.py setting -t dir
+['/home/user/media/'] 
+```
+
+"setting-add" Adds or edits a setting.
+
+```sh
+./check.py setting-add -t dir -s /home/user/movies
+/home/user/movies/  Successfully added to  directories
+```
+
+"setting-rm" Only works on lists, returns prompt to remove specific value.
+
+```sh
+./check.py setting-rm -t dir
+Which option would you like to remove? ['/home/user/media/', '/home/user/movies/']
+Type in the number of the option you want to remove:
+0 being the first option, 1 being the second option, etc.
+0
+Removed: /home/user/media/
+```
 
 ### These should be run in order. They need data from previous functions
 
-"scan" Scans directories in main.py
+| command | function | flags |
+|---------|----------|-------|
+| scan | Scans directories in main.py| -v |
+| tmdb| Searches TMDB for found movies| -v |
+| search | Searches trackers by TMDB id|-v |
+| save | Creates search_data.json| -m |
+| gg | Creates gg auto_upload commands txt file| |
+| txt | Creates txt file with useful information | |
+| csv | Creates CSV file with useful information | |
 
-"tmdb" Searches TMDB for found movies  
+-m or --mediainfo This will disable scanning with mediainfo. *Not recommended*.
 
-"search" Searches trackers by TMDB id
-
-"save" Creates search_data.json
-
-"gg" Creates gg auto_upload commands txt file
-
-"txt" Creates txt file with useful information for possible uploads
-
-"csv" Creates CSV file with useful information for possible uploads
-
-Accepted flags:
-
--m or --mediainfo This works only with the blu and run-all command it will disable scanning with mediainfo.
--v or --verbose This only works for scanning and searching for now.
+-v or --verbose Prints more stuffs.
 
 ## FAQ
 
 Q: What puts a movie in "safe"?
 
-A: If the file does not exist on the tracker, or the resolution is new.
+- A: If the file does not exist on the tracker, or the resolution is new.
 
 Q: What puts a movie in "risky"?
 
-A: The movie exists on the tracker, but the quality is new. e.g. web-dl, remux, etc.
+- A: The movie exists on the tracker, but the quality is new. e.g. web-dl, remux, etc.
 
 Q: What puts a movie in "danger"?
 
-A: There are multiple reasons why the movie gets put in "danger".
+- A: There are multiple reasons why the movie gets put in "danger".
 
-1: The year from the filename is different to the one matched on TMDB.
+- 1: The year from the filename is different to the one matched on TMDB.
 
-2: Mediainfo couldn't find English language subtitles or audio.
+- 2: Mediainfo couldn't find English language subtitles or audio.
 
-3: The movie exists on the tracker, but quality couldn't be extracted from filename.
+- 3: The movie exists on the tracker, but quality couldn't be extracted from filename.
 
 Q: How can I add support for different UNIT3D tracker?
 
-A: First you need to edit tracker_info.json. Then, append the relevant details in settings.py. self.tracker_nicknames & self.default_settings["keys"]
+- A: First you need to edit tracker_info.json. Then, append the relevant details in settings.py. self.tracker_nicknames & self.default_settings["keys"]
 
 Q: Why is tracker x not supported?
 
-A: I only added trackers I am on. Pull requests are welcomed!
+- A: I only added trackers I am on. Pull requests are welcomed!

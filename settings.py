@@ -259,6 +259,7 @@ class Settings:
                         print("The setting is empty.")
                 else:
                     print("The setting is not a list.")
+                    print(f"Use setting-add -t {target} -s <new_value>")
                 self.write_settings()
             elif len(matching_keys) > 1:
                 print(
