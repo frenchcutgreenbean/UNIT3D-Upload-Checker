@@ -31,7 +31,9 @@ class Settings:
                 "hdtv",
             ],  # See patterns.py for valid options, note "bluray" get's changed to encode in scan_directories()
             "ignored_keywords": [
-                "10bit"
+                "10bit",
+                "10-bit",
+                "DVD"
             ],  # This could be anything that would end up in the excess of parsed filename.
         }
         self.tracker_nicknames = {
