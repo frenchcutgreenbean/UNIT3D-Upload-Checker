@@ -600,13 +600,13 @@ class UploadChecker:
         }
         try:
             for tracker, data in self.search_data.items():
+                # Erase / create new file.
+                with open(f"{self.output_folder}{tracker}_gg.txt", "w") as f:
+                    f.write("")
+                platform = sys.platform
+                py_version = "python3" if "linux" in platform else "py"
+                tracker_flag = TRACKER_MAP[tracker]
                 if data["safe"]:
-                    with open(f"{self.output_folder}{tracker}_gg.txt", "w") as f:
-                        f.write("")
-                    platform = sys.platform
-                    py_version = "python3" if "linux" in platform else "py"
-                    tracker_flag = TRACKER_MAP[tracker]
-
                     for file, value in data["safe"].items():
                         line = (
                             py_version
