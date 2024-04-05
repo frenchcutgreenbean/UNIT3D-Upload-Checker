@@ -1,2 +1,3 @@
 *.pyc
 PTN/__pycache__
+.vscode/
