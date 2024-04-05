@@ -16,6 +16,10 @@ fi
 
 # Loop through each line in the file
 while IFS= read -r line; do
-    # Run the Python script with the command from the current line
-    $line
+    # Run the Python script with the command from the current line in the background
+    python_script_output=$(eval "$line" &)
+    # Store the process ID of the Python script
+    python_script_pid=$!
+    # Wait for the Python script to finish
+    wait "$python_script_pid"
 done < "$input_file"
