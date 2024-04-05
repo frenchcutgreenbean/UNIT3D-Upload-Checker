@@ -392,7 +392,7 @@ class UploadChecker:
                                             value["trackers"][tracker] = tracker_message
                                         # No results found, not on tracker.
                                         else:
-                                            tracker_message = False
+                                            tracker_message = f"Possible new release. {quality if quality else ''} {resolution if resolution else ''}"
                                             value["trackers"][tracker] = tracker_message
                                 else:
                                     # No results found, not on tracker.
@@ -449,7 +449,6 @@ class UploadChecker:
                                 if (year != tmdb_year)
                                 else ""
                             )
-                            print(title, year, tracker)
                             message = None
                             if isinstance(info, bool):
                                 if info is False:
@@ -506,6 +505,12 @@ class UploadChecker:
                                     continue
                                 # Not on tracker
                                 if isinstance(info, bool) and info is False:
+                                    self.search_data[tracker]["safe"][title] = (
+                                        tracker_info
+                                    )
+                                    continue
+                                # Not on tracker at a given resolution or quality.
+                                if "Possible" in info:
                                     self.search_data[tracker]["safe"][title] = (
                                         tracker_info
                                     )
