@@ -106,7 +106,8 @@ class UploadChecker:
                         else None
                     )
                     banned = False
-
+                    
+                    codec = parsed["codec"]
                     year = str(parsed["year"]).strip() if "year" in parsed else ""
                     title = parsed["title"].strip()
                     year_in_title = re.search(r"\d{4}", title)
@@ -147,6 +148,11 @@ class UploadChecker:
                     elif quality and (quality in self.ignore_qualities):
                         if verbose:
                             print(quality, "Is flagged for banning. Banned")
+                        banned = True
+                    # Ban x265 encodes
+                    elif resolution and ("265" in codec) and ("2160" not in resolution) and (quality == "encode"):
+                        if verbose:
+                            print(resolution, "@", codec, "Is flagged for banning. Banned")
                         banned = True
                     if "excess" in parsed:
                         for kw in self.ignore_keywords:
@@ -798,7 +804,6 @@ ptn = PTN()
 
 def parse_file(name):
     return ptn.parse(name)
-
 
 ch = UploadChecker()
 parser = argparse.ArgumentParser()
