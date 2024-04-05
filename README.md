@@ -91,7 +91,7 @@ run all
 | setting-add | Adds or edits a setting. | |
 | setting-rm | Only works on lists, returns prompt to remove specific value. | |
 
-*-v and -m only effect certain functions see below.*
+*-v and -m only affect certain functions; see below.*
 
 ### Examples
 
@@ -114,7 +114,7 @@ Type in the number of the option you want to remove:
 Removed: /home/user/media/
 ```
 
-### Manually run the commands ran in run-all
+### Manually run the commands in run-all
 
 | Command | Description | Flags |
 |---------|----------|-------|
@@ -153,6 +153,6 @@ Q: What puts a movie in "danger"?
 Q: Why is tracker x not supported?
 
 - A: I only added trackers I am on. Pull requests are welcomed!
-Q: How can I add support for different UNIT3D tracker?
+Q: How can I add support for different UNIT3D trackers?
 
 - A: First you need to edit tracker_info.json. Then, append the relevant details in settings.py. self.tracker_nicknames & self.default_settings["keys"]
