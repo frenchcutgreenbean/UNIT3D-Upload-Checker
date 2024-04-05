@@ -106,8 +106,8 @@ class UploadChecker:
                         else None
                     )
                     banned = False
-                    
-                    codec = parsed["codec"]
+
+                    codec = parsed["codec"] if "codec" in parsed else None
                     year = str(parsed["year"]).strip() if "year" in parsed else ""
                     title = parsed["title"].strip()
                     year_in_title = re.search(r"\d{4}", title)
@@ -150,9 +150,17 @@ class UploadChecker:
                             print(quality, "Is flagged for banning. Banned")
                         banned = True
                     # Ban x265 encodes
-                    elif resolution and ("265" in codec) and ("2160" not in resolution) and (quality == "encode"):
+                    elif (
+                        resolution
+                        and codec
+                        and ("265" in codec)
+                        and ("2160" not in resolution)
+                        and (quality == "encode")
+                    ):
                         if verbose:
-                            print(resolution, "@", codec, "Is flagged for banning. Banned")
+                            print(
+                                resolution, "@", codec, "Is flagged for banning. Banned"
+                            )
                         banned = True
                     if "excess" in parsed:
                         for kw in self.ignore_keywords:
@@ -351,9 +359,14 @@ class UploadChecker:
                                                 ],  # Where UNIT3D qualities are stored e.g. remux, encode, etc
                                             ).strip()
 
-                                            if tracker_quality.lower() == quality.lower():
+                                            if (
+                                                tracker_quality.lower()
+                                                == quality.lower()
+                                            ):
                                                 tracker_message = True
-                                                value["trackers"][tracker] = tracker_message  # True means already on tracker at the same quality
+                                                value["trackers"][tracker] = (
+                                                    tracker_message  # True means already on tracker at the same quality
+                                                )
                                                 break
                                             else:
                                                 tracker_message = f"On {tracker}{resolution_msg}, but quality [{quality}] was not found, double check to make sure."
@@ -804,6 +817,7 @@ ptn = PTN()
 
 def parse_file(name):
     return ptn.parse(name)
+
 
 ch = UploadChecker()
 parser = argparse.ArgumentParser()
