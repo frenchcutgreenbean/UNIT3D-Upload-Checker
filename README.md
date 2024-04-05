@@ -117,19 +117,27 @@ Accepted flags:
 ## FAQ
 
 Q: What puts a movie in "safe"?
+
 A: If the file does not exist on the tracker, or the resolution is new.
 
 Q: What puts a movie in "risky"?
+
 A: The movie exists on the tracker, but the quality is new. e.g. web-dl, remux, etc.
 
 Q: What puts a movie in "danger"?
+
 A: There are multiple reasons why the movie gets put in "danger".
+
 1: The year from the filename is different to the one matched on TMDB.
+
 2: Mediainfo couldn't find English language subtitles or audio.
+
 3: The movie exists on the tracker, but quality couldn't be extracted from filename.
 
 Q: How can I add support for different UNIT3D tracker?
+
 A: First you need to edit tracker_info.json. Then, append the relevant details in settings.py. self.tracker_nicknames & self.default_settings["keys"]
 
 Q: Why is tracker x not supported?
+
 A: I only added trackers I am on. Pull requests are welcomed!
