@@ -398,7 +398,6 @@ class UploadChecker:
                                                 if not self.settings.is_upgrade(
                                                     quality, lr
                                                 ):
-                                                    print(quality, lr)
                                                     is_upgrade = False
                                                     break
                                             if is_upgrade:
