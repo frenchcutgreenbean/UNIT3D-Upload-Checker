@@ -1,7 +1,9 @@
 import os
 import json
+import traceback
 
 import requests
+
 
 class Settings:
     def __init__(self):
@@ -33,7 +35,7 @@ class Settings:
             "ignored_keywords": [
                 "10bit",
                 "10-bit",
-                "DVD"
+                "DVD",
             ],  # This could be anything that would end up in the excess of parsed filename.
         }
         self.tracker_nicknames = {
@@ -45,6 +47,14 @@ class Settings:
             "aith": "aither",
             "blu": "blutopia",
             "blutopia": "blutopia",
+        }
+
+        # Basic hierarchy for qualities used to see if a file is an upgrade
+        self.quality_hierarchy = {
+            "webrip": 0,
+            "web-dl": 1,
+            "encode": 2,
+            "remux": 3,
         }
         self.current_settings = None
         self.tracker_info = None
@@ -72,23 +82,90 @@ class Settings:
         except Exception as e:
             print("Error initializing settings: ", e)
 
-    # Make sure directories exist and have trailing slashes
+    # Clean directories from loaded settings
     def validate_directories(self):
         try:
             directories = self.current_settings["directories"]
-            clean = []
-            for dir in directories:
-                if os.path.exists(dir):
-                    trailing = os.path.join(dir, "")
-                    clean.append(trailing)
+            directories = list(set(directories))
+            # Remove trailing slashes for os.path.commonpath
+            clean = [
+                dir_path[:-1]
+                if dir_path[-1] == "\\" or dir_path[-1] == "/"
+                else dir_path
+                for dir_path in directories
+            ]
+            clean_copy = clean
+            if len(clean) > 1:
+                for dir_path in clean:
+                    # Check if the directory exists
+                    if os.path.exists(dir_path):
+                        drive, tail = os.path.splitdrive(dir_path)
+                        if drive and not tail.strip("\\/"):
+                            print(
+                                f"{dir_path} is a root directory, removing child directories"
+                            )
+                            clean_copy = [
+                                c for c in clean_copy if not c.startswith(drive[0])
+                            ]
+                            clean_copy.append(dir_path)
+                            continue
+                        elif dir_path in clean_copy:
+                            is_subpath = False
+                            child_path = None
+                            parent_path = None
+                            for other_dir in clean_copy:
+                                if (
+                                    dir_path != other_dir
+                                    and os.path.commonpath([dir_path, other_dir])
+                                    == dir_path
+                                ):
+                                    is_subpath = True
+                                    child_path = (
+                                        other_dir
+                                        if len(other_dir) > len(dir_path)
+                                        else dir_path
+                                    )
+                                    parent_path = (
+                                        other_dir
+                                        if len(other_dir) < len(dir_path)
+                                        else dir_path
+                                    )
+                                    print(
+                                        f"{child_path} is a sub-path of {parent_path}, removing"
+                                    )
+                                else:
+                                    continue
+                            if is_subpath and child_path in clean_copy:
+                                clean_copy.remove(child_path)
+                        else:
+                            continue
+
+                    else:
+                        print(f"{dir_path} does not exist, removing")
+            normalized_directories = []
+            for c in clean_copy:
+                if not c.endswith(os.path.sep):
+                    # List comp with os.path.join() wasn't working on root directory on Windows for some reason
+                    c += os.path.sep
+                    normalized_directories.append(c)
                 else:
-                    print(dir, "Does not exist, removing")
-            clean = list(set(clean))
-            self.current_settings["directories"] = clean
+                    normalized_directories.append(c)
+            self.current_settings["directories"] = normalized_directories
             self.write_settings()
         except Exception as e:
             print("Error Validating Directories:", e)
-    
+            print(traceback.format_exc())
+
+    # Add and validate new directories.
+    def add_directory(self, path):
+        directories = self.current_settings["directories"]
+        if not os.path.exists(path):
+            raise ValueError("Path doesn't exist")
+        if path not in directories:
+            # Add the new path to the list
+            directories.append(path)
+            self.validate_directories()
+
     def validate_tmdb(self, key):
         try:
             url = f"https://api.themoviedb.org/3/configuration?api_key={key}"
@@ -118,6 +195,7 @@ class Settings:
                 url = self.tracker_info[tracker]["url"]
                 url = f"{url}api/torrents?perPage=10&api_token={key}"
                 response = requests.get(url)
+                # UNIT3D pushes you to the homepage if the api key is invalid
                 if response.history:
                     print("Invalid API Key")
                     return
@@ -134,7 +212,34 @@ class Settings:
 
     def setting_helper(self, target):
         settings = self.current_settings
+        nicknames = self.tracker_nicknames
         matching_keys = [key for key in settings.keys() if target in key]
+        if len(matching_keys) == 1:
+            return matching_keys[0]
+        elif len(matching_keys) > 1:
+            print(
+                "Multiple settings match the provided substring. Please provide a more specific target."
+            )
+            print(settings.keys())
+            print(
+                "Unique substrings accepted: dir, tmdb, sites, gg, search, size, dupes, banned, qual, keywords"
+            )
+            print(
+                "If you're trying to add a tracker key, you can use setting-add -t <site> -s <api_key>"
+            )
+            print("Accepted sites: ", nicknames.keys())
+            return
+        else:
+            print(target, " is not a supported setting")
+            print("Accepted targets: ", settings.keys())
+            print(
+                "Unique substrings accepted: dir, tmdb, sites, gg, search, size, dupes, banned, qual, keywords"
+            )
+            print(
+                "If you're trying to add a tracker key, you can use setting-add -t <site> -s <api_key>"
+            )
+            print("Accepted sites: ", nicknames.keys())
+            return
         return matching_keys
 
     # Update a specific setting
@@ -142,9 +247,9 @@ class Settings:
         try:
             settings = self.current_settings
             nicknames = self.tracker_nicknames
-            matching_keys = self.setting_helper(target)
-            if len(matching_keys) == 1:
-                target = matching_keys[0]  # Update target to the full key
+            matching_key = self.setting_helper(target)
+            if matching_key:
+                target = matching_key  # Update target to the full key
                 if target == "tmdb_key":
                     self.validate_tmdb(value)
                     settings[target] = value
@@ -154,30 +259,29 @@ class Settings:
                     print(value, " Successfully added to ", target)
                 elif isinstance(settings[target], list):
                     if target == "directories":
-                        path = os.path.join(value, "") # Ensure trailing slashes
-                        if os.path.exists(path) and path not in settings[target]:
-                            settings[target].append(path) # Add new directory
-                            print(value, " Successfully added to ", target)
-                        elif path in settings[target]: # Don't add duplicates
-                            print(value, " Already in ", target)
-                        else:
-                            print("Path not found")
+                        self.add_directory(value)
                     elif target == "enabled_sites":
                         if value in nicknames:
                             tracker = nicknames[value]
                             if not self.current_settings["keys"].get(tracker):
-                                print("There is currently no api key for", value, "\nAdd one using setting-add -t <site> -s <api_key>", f"\ne.g. setting-add -t {value} -s <api_key>")
+                                print(
+                                    "There is currently no api key for",
+                                    value,
+                                    f"\nAdd one using setting-add -t {value} -s <api_key>",
+                                )
                         else:
-                            print(value, " is not a supported site") 
+                            print(value, " is not a supported site")
                             return
-                        if value in settings[target]: # Don't add duplicates
+                        if value in settings[target]:  # Don't add duplicates
                             print(value, " Already in ", target)
                             return
                         else:
-                            settings[target].append(tracker) # Add new site
+                            settings[target].append(tracker)  # Add new site
                             print(tracker, "Successfully added to", target)
                     else:
-                        settings[target].append(value) # banned_groups, ignored_qualities, ignored_keywords these shouldn't need extra validation
+                        settings[target].append(
+                            value
+                        )  # banned_groups, ignored_qualities, ignored_keywords these shouldn't need extra validation
                         print(value, " Successfully added to ", target)
                 elif isinstance(settings[target], bool):
                     if "t" in value.lower():
@@ -199,47 +303,26 @@ class Settings:
                     print("No api key provided")
                 else:
                     self.validate_key(value, target)
-            elif len(matching_keys) > 1:
-                print("Multiple settings match the provided substring. Please provide a more specific target.")
-                print(settings.keys())
-                print("Unique substrings accepted: dir, tmdb, sites, gg, search, size, dupes, banned, qual, keywords")
-                print("If you're trying to add a tracker key, you can use setting-add -t <site> -s <api_key>")
-                print("Accepted sites: ", nicknames.keys())
-            else: 
-                print(target, " is not a supported setting")
-                print("Accepted targets: ", settings.keys())
-                print(
-                    "Unique substrings accepted: dir, tmdb, sites, gg, search, size, dupes, banned, qual, keywords"
-                )
-                print(
-                    "If you're trying to add a tracker key, you can use setting-add -t <site> -s <api_key>"
-                )
-                print("Accepted sites: ", nicknames.keys())
-                return
             self.current_settings = settings
             self.write_settings()
         except Exception as e:
             print("Error updating setting", e)
+            print(traceback.format_exc())
 
     def return_setting(self, target):
         try:
-            matching_keys = self.setting_helper(target)
-            if len(matching_keys) == 1:
-                target = matching_keys[0]  # Update target to the full key
+            matching_key = self.setting_helper(target)
+            if matching_key:
+                target = matching_key  # Update target to the full key
                 return self.current_settings[target]
-            elif len(matching_keys) > 1:
-                print("Multiple settings match the provided substring. Please provide a more specific target.")
-                print(self.current_settings.keys())
-                print("Unique substrings accepted: dir, tmdb, sites, gg, search, size, dupes, banned, qual, keywords")
-            else:
-                return (target, " Not found in current settings.")
         except Exception as e:
             print("Error returning settings: ", e)
+
     def remove_setting(self, target):
         try:
-            matching_keys = self.setting_helper(target)
-            if len(matching_keys) == 1:
-                target = matching_keys[0]  # Update target to the full key
+            matching_key = self.setting_helper(target)
+            if matching_key:
+                target = matching_key  # Update target to the full key
                 setting = self.current_settings[target]
                 if isinstance(setting, list):
                     if len(setting) > 0:
@@ -247,7 +330,7 @@ class Settings:
                             "Which option would you like to remove?",
                             setting,
                             "\nType in the number of the option you want to remove:",
-                            "\n0 being the first option, 1 being the second option, etc."
+                            "\n0 being the first option, 1 being the second option, etc.",
                         )
                         option = int(input())
                         if option < 0 or option >= len(setting):
@@ -263,18 +346,23 @@ class Settings:
                     print("The setting is not a list.")
                     print(f"Use setting-add -t {target} -s <new_value>")
                 self.write_settings()
-            elif len(matching_keys) > 1:
-                print(
-                    "Multiple settings match the provided substring. Please provide a more specific target."
-                )
-                print(self.current_settings.keys())
-                print(
-                    "Unique substrings accepted: dir, tmdb, sites, gg, search, size, dupes, banned, qual, keywords"
-                )
-            else:
-                return (target, " Not found in current settings.")
         except Exception as e:
             print("Error removing setting:", e)
+
+    def is_upgrade(self, file, tr):
+        if not file or not tr:
+            print("error comparing qualities")
+            return False
+        if (
+            file not in self.quality_hierarchy.keys()
+            or tr not in self.quality_hierarchy.keys()
+        ):
+            print(file, tr)
+            return False
+        if self.quality_hierarchy[file] > self.quality_hierarchy[tr]:
+            return True
+        else:
+            return False
 
     def write_settings(self):
         try:

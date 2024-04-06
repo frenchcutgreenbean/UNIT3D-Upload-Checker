@@ -149,7 +149,7 @@ class UploadChecker:
                         if verbose:
                             print(quality, "Is flagged for banning. Banned")
                         banned = True
-                    # Ban x265 encodes
+                    # Ban x265 encodes for < 2160p
                     elif (
                         resolution
                         and codec
@@ -335,7 +335,8 @@ class UploadChecker:
                                     value["trackers"][tracker] = True
                                     continue
                                 if results:
-                                    loop_results = {}
+                                    # loop_results = {}
+                                    loop_results = []
                                     for i, result in enumerate(results):
                                         dupe_res = False
                                         dupe_quality = False
@@ -386,13 +387,31 @@ class UploadChecker:
                                             value["trackers"][tracker] = tracker_message
                                             break
                                         elif dupe_res and quality:
-                                            loop_message = "Resolution match, but could be a new quality. Manual search recommended."
-                                            loop_results[i] = loop_message
+                                            loop_message = tracker_quality.lower()
+                                            loop_results.append(loop_message)
+                                            # loop_message = "Resolution match, but could be a new quality. Manual search recommended."
+                                            # loop_results[i] = loop_message
                                     else:
                                         if loop_results:
-                                            tracker_message = f"Resolution found on {tracker}, but could be a new quality. Manual search recommended."
-                                            value["trackers"][tracker] = tracker_message
-                                        # No results found, not on tracker.
+                                            is_upgrade = True
+                                            for lr in loop_results:
+                                                if not self.settings.is_upgrade(
+                                                    quality, lr
+                                                ):
+                                                    print(quality, lr)
+                                                    is_upgrade = False
+                                                    break
+                                            if is_upgrade:
+                                                tracker_message = f"Resolution found on {tracker}, but seems like an upgrade. {quality}"
+                                                value["trackers"][tracker] = (
+                                                    tracker_message
+                                                )
+                                            else:
+                                                tracker_message = f"Resolution found on {tracker}, but could be a new quality. Manual search recommended."
+                                                value["trackers"][tracker] = (
+                                                    tracker_message
+                                                )
+                                        # Probably, never reached.
                                         else:
                                             tracker_message = f"Possible new release. {quality if quality else ''} {resolution if resolution else ''}"
                                             value["trackers"][tracker] = tracker_message
@@ -412,6 +431,7 @@ class UploadChecker:
                                     f"Something went wrong searching {tracker} for {value['title']} ",
                                     e,
                                 )
+                                print(traceback.format_exc())
                         print("Waiting for cooldown...", self.cooldown, "seconds")
                         time.sleep(self.cooldown)
                     except Exception as e:
@@ -517,6 +537,12 @@ class UploadChecker:
                                         tracker_info
                                     )
                                     continue
+                                # Upgrade detected
+                                if "upgrade" in info:
+                                    self.search_data[tracker]["safe"][title] = (
+                                        tracker_info
+                                    )
+                                    continue
                                 # On tracker but either couldn't get resolution or quality from filename.
                                 if "required" in info:
                                     self.search_data[tracker]["danger"][title] = (
@@ -536,7 +562,7 @@ class UploadChecker:
                                     )
                                     continue
                             # TMDB + Filename year mismatch or simply no year in filename.
-                            else:  
+                            else:
                                 self.search_data[tracker]["danger"][title] = (
                                     tracker_info
                                 )
