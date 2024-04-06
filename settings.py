@@ -357,7 +357,6 @@ class Settings:
             file not in self.quality_hierarchy.keys()
             or tr not in self.quality_hierarchy.keys()
         ):
-            print(file, tr)
             return False
         if self.quality_hierarchy[file] > self.quality_hierarchy[tr]:
             return True
