@@ -253,7 +253,6 @@ class Settings:
                 if target == "tmdb_key":
                     self.validate_tmdb(value)
                     settings[target] = value
-                    return
                 if isinstance(settings[target], str):
                     settings[target] = value
                     print(value, " Successfully added to ", target)
