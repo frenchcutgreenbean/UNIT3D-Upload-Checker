@@ -622,6 +622,9 @@ class UploadChecker:
             "blutopia": "BLU",
             "fearnopeer": "FNP",
             "reelflix": "RFX",
+            "lst": "LST",
+            "onlyencodes": "OE",
+            "ulcx": "ULCX",
         }
         try:
             for tracker, data in self.search_data.items():
