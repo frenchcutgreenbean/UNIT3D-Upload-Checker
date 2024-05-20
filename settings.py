@@ -17,6 +17,9 @@ class Settings:
                 "blutopia": "",
                 "fearnopeer": "",
                 "reelflix": "",
+                "lst": "",
+                "ulcx": "",
+                "onlyencodes": "",
             },
             "gg_path": "",  # Path to GG-Bot e.g. /home/user/gg-bot-upload-assistant/ --- Not required only for export_gg_bot()
             "search_cooldown": 5,  # In seconds. Anything less than 3 isn't recommended. 30 requests per minute is max before hit rate limits. - HDVinnie
@@ -47,6 +50,12 @@ class Settings:
             "aith": "aither",
             "blu": "blutopia",
             "blutopia": "blutopia",
+            "lst": "lst",
+            "ulcx": "upload.cx",
+            "upload.cx": "upload.cx",
+            "upload.cx": "ulcx",
+            "onlyencodes": "oe",
+            "oe": "onlyencodes",
         }
 
         # Basic hierarchy for qualities used to see if a file is an upgrade
