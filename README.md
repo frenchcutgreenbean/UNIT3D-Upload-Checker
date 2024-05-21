@@ -11,8 +11,11 @@
 
 - Aither
 - Blutopia
-- Fearnopeer
-- Reelflix
+- FearNoPeer
+- LST
+- OnlyEncodes
+- ReelFliX
+- Upload.cx
 
 Any UNIT3D trackers can be supported by adding the necessary info.
 
