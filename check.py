@@ -453,7 +453,7 @@ class UploadChecker:
                     self.save_database()
             self.save_database()
         except Exception as e:
-            print("Error searching blu: ", e)
+            print("Error searching tracker: ", e)
 
     # Create search_data.json
     def create_search_data(self, mediainfo=True):
@@ -675,11 +675,11 @@ class UploadChecker:
                     for value in data["safe"].values():
                         line = (
                             py_version
-                            + f" {self.ua_path}upload.py --trackers {tracker_flag} {value['file_location']}"
+                            + f" {self.ua_path}upload.py --trackers {tracker_flag} {value['file_location']}\n"
                         )
                         f.write(line)
             print(
-                f"Exported Upload-Assistant commands. {self.output_folder}{tracker}_ua.txt"
+                f"Exported Upload-Assistant commands to {self.output_folder}{tracker}_ua.txt"
             )
 
     # Export possible uploads to manual.txt
@@ -915,7 +915,7 @@ parser.add_argument(
     "--target",
     "-t",
     help="Specify the target setting to update."
-    "\nValid targets: directories, tmdb_key, enabled_sites, gg_path, search_cooldown, min_file_size, allow_dupes, banned_groups, ignored_qualities, ignored_keywords"
+    "\nValid targets: directories, tmdb_key, enabled_sites, gg_path, ua_path, search_cooldown, min_file_size, allow_dupes, banned_groups, ignored_qualities, ignored_keywords"
     "\nYou can also use setting-add to add api keys: -t aith, blu, fnp, rfx. followed by -s <key>",
 )
 parser.add_argument("--set", "-s", help="Specify the new value for the target setting")
