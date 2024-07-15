@@ -22,6 +22,7 @@ class Settings:
                 "onlyencodes": "",
             },
             "gg_path": "",  # Path to GG-Bot e.g. /home/user/gg-bot-upload-assistant/ --- Not required only for export_gg_bot()
+            "ua_path": "",  # Path to upload-assistant, e.g. /home/user/uplaad-assistant/ --- Optional
             "search_cooldown": 5,  # In seconds. Anything less than 3 isn't recommended. 30 requests per minute is max before hit rate limits. - HDVinnie
             "min_file_size": 800,  # In MB
             "allow_dupes": True,  # If false only check for completely unique movies

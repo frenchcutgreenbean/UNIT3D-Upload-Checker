@@ -18,6 +18,18 @@ from mediainfo import get_media_info, format_media_info
 from settings import Settings
 
 
+# For gg-bot -t flag and upload assistant --trackers flag
+TRACKER_MAP = {
+    "aither": "ATH",
+    "blutopia": "BLU",
+    "fearnopeer": "FNP",
+    "reelflix": "RFX",
+    "lst": "LST",
+    "onlyencodes": "OE",
+    "ulcx": "ULCX",
+}
+
+
 class UploadChecker:
     def __init__(self):
         self.settings = Settings()
@@ -441,7 +453,7 @@ class UploadChecker:
                     self.save_database()
             self.save_database()
         except Exception as e:
-            print("Error searching blu: ", e)
+            print("Error searching tracker: ", e)
 
     # Create search_data.json
     def create_search_data(self, mediainfo=True):
@@ -611,21 +623,12 @@ class UploadChecker:
         self.search_trackers(verbose)
         self.create_search_data(mediainfo)
         self.export_gg()
+        self.export_ua()
         self.export_txt()
         self.export_csv()
 
     # Export gg-bot auto_upload commands.
     def export_gg(self):
-        # For gg-bot -t flag
-        TRACKER_MAP = {
-            "aither": "ATH",
-            "blutopia": "BLU",
-            "fearnopeer": "FNP",
-            "reelflix": "RFX",
-            "lst": "LST",
-            "onlyencodes": "OE",
-            "ulcx": "ULCX",
-        }
         try:
             for tracker, data in self.search_data.items():
                 # Erase / create new file.
@@ -657,6 +660,27 @@ class UploadChecker:
 
         except Exception as e:
             raise e
+
+    def export_ua(self):
+        """Exports results as commands ready to use for uploading with upload assistant."""
+        if not self.ua_path or len(self.ua_path) == 0:
+            print("ua_path not configured.")
+            return
+
+        for tracker, data in self.search_data.items():
+            with open(f"{self.output_folder}{tracker}_ua.txt", "w") as f:
+                py_version = "py" if "win" in sys.platform else "python3"
+                tracker_flag = TRACKER_MAP[tracker]
+                if data["safe"]:
+                    for value in data["safe"].values():
+                        line = (
+                            py_version
+                            + f" {self.ua_path}upload.py --trackers {tracker_flag} {value['file_location']}\n"
+                        )
+                        f.write(line)
+            print(
+                f"Exported Upload-Assistant commands to {self.output_folder}{tracker}_ua.txt"
+            )
 
     # Export possible uploads to manual.txt
     def export_txt(self):
@@ -819,6 +843,7 @@ class UploadChecker:
         self.ignore_qualities = self.current_settings["ignored_qualities"]
         self.ignore_keywords = self.current_settings["ignored_keywords"]
         self.gg_path = self.current_settings["gg_path"]
+        self.ua_path = self.current_settings["ua_path"]
 
     def update_setting(self, target, value):
         self.settings.update_setting(target, value)
@@ -873,6 +898,7 @@ FUNCTION_MAP = {
     "txt": ch.export_txt,
     "csv": ch.export_csv,
     "gg": ch.export_gg,
+    "ua": ch.export_ua,
 }
 
 
@@ -889,7 +915,7 @@ parser.add_argument(
     "--target",
     "-t",
     help="Specify the target setting to update."
-    "\nValid targets: directories, tmdb_key, enabled_sites, gg_path, search_cooldown, min_file_size, allow_dupes, banned_groups, ignored_qualities, ignored_keywords"
+    "\nValid targets: directories, tmdb_key, enabled_sites, gg_path, ua_path, search_cooldown, min_file_size, allow_dupes, banned_groups, ignored_qualities, ignored_keywords"
     "\nYou can also use setting-add to add api keys: -t aith, blu, fnp, rfx. followed by -s <key>",
 )
 parser.add_argument("--set", "-s", help="Specify the new value for the target setting")
