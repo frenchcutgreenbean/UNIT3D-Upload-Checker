@@ -414,14 +414,14 @@ class UploadChecker:
                                                     break
                                             if is_upgrade:
                                                 tracker_message = f"Resolution found on {tracker}, but seems like an upgrade. {quality}"
-                                                value["trackers"][tracker] = (
-                                                    tracker_message
-                                                )
+                                                value["trackers"][
+                                                    tracker
+                                                ] = tracker_message
                                             else:
                                                 tracker_message = f"Resolution found on {tracker}, but could be a new quality. Manual search recommended."
-                                                value["trackers"][tracker] = (
-                                                    tracker_message
-                                                )
+                                                value["trackers"][
+                                                    tracker
+                                                ] = tracker_message
                                         # Probably, never reached.
                                         else:
                                             tracker_message = f"Possible new release. {quality if quality else ''} {resolution if resolution else ''}"
@@ -497,7 +497,11 @@ class UploadChecker:
                                 audio_language, subtitles, video_info, audio_info = (
                                     get_media_info(file_location)
                                 )
-                                if "en" not in audio_language and "en" not in subtitles:
+                                if not any(
+                                    lang.startswith("en") for lang in audio_language
+                                ) and not any(
+                                    sub.startswith("en") for sub in subtitles
+                                ):
                                     extra_info += (
                                         " No English subtitles found in media info"
                                     )
@@ -510,7 +514,11 @@ class UploadChecker:
                             elif mediainfo is True and media_info:
                                 audio_language = media_info["audio_language(s)"]
                                 subtitles = media_info["subtitle(s)"]
-                                if "en" not in audio_language and "en" not in subtitles:
+                                if not any(
+                                    lang.startswith("en") for lang in audio_language
+                                ) and not any(
+                                    sub.startswith("en") for sub in subtitles
+                                ):
                                     extra_info += (
                                         " No English subtitles found in media info"
                                     )
@@ -532,51 +540,51 @@ class UploadChecker:
                             if tmdb_year == year:
                                 # No English subtitles or audio
                                 if "English" in extra_info:
-                                    self.search_data[tracker]["danger"][title] = (
-                                        tracker_info
-                                    )
+                                    self.search_data[tracker]["danger"][
+                                        title
+                                    ] = tracker_info
                                     continue
                                 # Not on tracker
                                 if isinstance(info, bool) and info is False:
-                                    self.search_data[tracker]["safe"][title] = (
-                                        tracker_info
-                                    )
+                                    self.search_data[tracker]["safe"][
+                                        title
+                                    ] = tracker_info
                                     continue
                                 # Not on tracker at a given resolution or quality.
                                 if "Possible" in info:
-                                    self.search_data[tracker]["safe"][title] = (
-                                        tracker_info
-                                    )
+                                    self.search_data[tracker]["safe"][
+                                        title
+                                    ] = tracker_info
                                     continue
                                 # Upgrade detected
                                 if "upgrade" in info:
-                                    self.search_data[tracker]["safe"][title] = (
-                                        tracker_info
-                                    )
+                                    self.search_data[tracker]["safe"][
+                                        title
+                                    ] = tracker_info
                                     continue
                                 # On tracker but either couldn't get resolution or quality from filename.
                                 if "required" in info:
-                                    self.search_data[tracker]["danger"][title] = (
-                                        tracker_info
-                                    )
+                                    self.search_data[tracker]["danger"][
+                                        title
+                                    ] = tracker_info
                                     continue
                                 # On tracker at given resolution but quality might be new
                                 if "recommended" in info:
-                                    self.search_data[tracker]["risky"][title] = (
-                                        tracker_info
-                                    )
+                                    self.search_data[tracker]["risky"][
+                                        title
+                                    ] = tracker_info
                                     continue
                                 # Probably unnecessary
                                 else:
-                                    self.search_data[tracker]["danger"][title] = (
-                                        tracker_info
-                                    )
+                                    self.search_data[tracker]["danger"][
+                                        title
+                                    ] = tracker_info
                                     continue
                             # TMDB + Filename year mismatch or simply no year in filename.
                             else:
-                                self.search_data[tracker]["danger"][title] = (
-                                    tracker_info
-                                )
+                                self.search_data[tracker]["danger"][
+                                    title
+                                ] = tracker_info
                     except Exception as e:
                         print("Error creating search_data.json:", e)
             self.save_search_data()

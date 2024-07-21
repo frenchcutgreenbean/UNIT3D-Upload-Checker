@@ -52,10 +52,10 @@ class Settings:
             "blu": "blutopia",
             "blutopia": "blutopia",
             "lst": "lst",
-            "ulcx": "upload.cx",
-            "upload.cx": "upload.cx",
+            "lstgg": "lst",
+            "ulcx": "ulcx",
             "upload.cx": "ulcx",
-            "onlyencodes": "oe",
+            "onlyencodes": "onlyencodes",
             "oe": "onlyencodes",
         }
 
@@ -99,9 +99,11 @@ class Settings:
             directories = list(set(directories))
             # Remove trailing slashes for os.path.commonpath
             clean = [
-                dir_path[:-1]
-                if dir_path[-1] == "\\" or dir_path[-1] == "/"
-                else dir_path
+                (
+                    dir_path[:-1]
+                    if dir_path[-1] == "\\" or dir_path[-1] == "/"
+                    else dir_path
+                )
                 for dir_path in directories
             ]
             clean_copy = clean
@@ -212,6 +214,7 @@ class Settings:
                 else:
                     api_key = key
                 self.current_settings["keys"][tracker] = api_key
+                self.write_settings()
                 print("Key is valid and was added to", tracker)
             except Exception as e:
                 print("Error searching api:", e)
@@ -224,6 +227,9 @@ class Settings:
         settings = self.current_settings
         nicknames = self.tracker_nicknames
         matching_keys = [key for key in settings.keys() if target in key]
+        matching_nicks = [nick for nick in nicknames.keys() if target in nick]
+        if len(matching_nicks) >= 1:
+            return False
         if len(matching_keys) == 1:
             return matching_keys[0]
         elif len(matching_keys) > 1:
@@ -250,7 +256,6 @@ class Settings:
             )
             print("Accepted sites: ", nicknames.keys())
             return
-        return matching_keys
 
     # Update a specific setting
     def update_setting(self, target, value):
@@ -321,9 +326,17 @@ class Settings:
     def return_setting(self, target):
         try:
             matching_key = self.setting_helper(target)
+            matching_nick = (
+                self.tracker_nicknames[target]
+                if target in self.tracker_nicknames
+                else False
+            )
             if matching_key:
                 target = matching_key  # Update target to the full key
                 return self.current_settings[target]
+            elif matching_nick:
+                if self.current_settings["keys"][matching_nick]:
+                    return self.current_settings["keys"][matching_nick]
         except Exception as e:
             print("Error returning settings: ", e)
 
