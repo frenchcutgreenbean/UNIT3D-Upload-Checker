@@ -174,6 +174,19 @@ Files that require careful review:
 - No English audio or subtitles found
 - Existing on tracker but quality couldn't be determined from filename
 
+## Using with Upload-Assistant
+I recommend using the upgraded fork from @Audionut
+https://github.com/Audionut/Upload-Assistant
+
+This has support to call the output.txt file and upload all the safe matches using the --unit3d flag.
+
+Can be called like:
+```sh
+py upload.py "path_to_unit3d-upload-checker_output_txt_file.txt" --trackers "AITHER" -ua --unit3d
+
+py upload.py "/home/user/bin/UNIT3D-Upload-Checker/outputs/lst_uploads.txt" --trackers "LST" -ua --unit3d
+```
+
 ## Adding New Trackers
 
 To add support for additional UNIT3D trackers:

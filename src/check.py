@@ -733,6 +733,8 @@ class UploadChecker:
         if not self.ua_path or len(self.ua_path) == 0:
             print("ua_path not configured.")
             return
+        if "upload.py" in self.ua_path:
+            self.ua_path = self.ua_path.replace("upload.py", "")
 
         for tracker, data in self.search_data.items():
             with open(f"{self.output_folder}{tracker}_ua.txt", "w") as f:
