@@ -7,9 +7,11 @@ import requests
 
 
 # CONSTANTS
-DATA_FOLDER = Path("./data/")
+PROJECT_ROOT = Path(__file__).parent.parent.resolve()
+DATA_FOLDER = PROJECT_ROOT / "data"
+SRC_FOLDER = PROJECT_ROOT / "src"
 SETTINGS_FILE = DATA_FOLDER / "settings.json"
-TRACKER_INFO_FILE = Path("tracker_info.json")
+TRACKER_INFO_FILE = SRC_FOLDER / "tracker_info.json"
 
 DEFAULT_SETTINGS = {
     "directories": [],
@@ -52,7 +54,8 @@ TRACKER_NICKNAMES = {
 }
 
 # Quality hierarchy for comparison
-QUALITY_HIERARCHY = {"webrip": 0, "web-dl": 1, "encode": 2, "remux": 3}
+# Most users would prefer REMUX to full discs
+QUALITY_HIERARCHY = {"webrip": 0, "webdl": 1, "encode": 2, "remux": 4, "fulldisc": 3}
 
 
 class Settings:
@@ -246,6 +249,37 @@ class Settings:
             print(f"Error updating setting: {e}")
             traceback.print_exc()
             return False
+
+    def remove_setting(self, target):
+        try:
+            matching_key = self.setting_helper(target)
+            if matching_key:
+                target = matching_key  # Update target to the full key
+                setting = self.current_settings[target]
+                if isinstance(setting, list):
+                    if len(setting) > 0:
+                        print(
+                            "Which option would you like to remove?",
+                            setting,
+                            "\nType in the number of the option you want to remove:",
+                            "\n0 being the first option, 1 being the second option, etc.",
+                        )
+                        option = int(input())
+                        if option < 0 or option >= len(setting):
+                            print("Option out of range")
+                            return
+                        removed_item = setting.pop(option)
+                        # Remove trailing backslash if exists
+                        removed_item = removed_item.rstrip("\\")
+                        print("Removed:", removed_item)
+                    else:
+                        print("The setting is empty.")
+                else:
+                    print("The setting is not a list.")
+                    print(f"Use setting-add -t {target} -s <new_value>")
+                self.write_settings()
+        except Exception as e:
+            print("Error removing setting:", e)
 
     def _handle_tracker_key(self, target: str, value: str) -> bool:
         """Handle tracker API key updates."""
