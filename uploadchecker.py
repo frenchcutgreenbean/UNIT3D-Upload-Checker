@@ -70,18 +70,6 @@ Examples:
     setting_parser.add_argument(
         "target",
         nargs="?",
-        choices=[
-            "directories",
-            "tmdb_key",
-            "enabled_sites",
-            "gg_path",
-            "ua_path",
-            "search_cooldown",
-            "min_file_size",
-            "banned_groups",
-            "ignored_qualities",
-            "ignored_keywords",
-        ],
         help="Specific setting to view (optional)",
     )
 
@@ -89,22 +77,6 @@ Examples:
     add_parser = subparsers.add_parser("setting-add", help="Add or update a setting")
     add_parser.add_argument(
         "target",
-        choices=[
-            "directories",
-            "tmdb_key",
-            "enabled_sites",
-            "gg_path",
-            "ua_path",
-            "search_cooldown",
-            "min_file_size",
-            "banned_groups",
-            "ignored_qualities",
-            "ignored_keywords",
-            "aith",
-            "blu",
-            "fnp",
-            "rfx",
-        ],
         help="Setting to add/update",
     )
     add_parser.add_argument("value", help="Value to set")
@@ -113,13 +85,6 @@ Examples:
     rm_parser = subparsers.add_parser("setting-rm", help="Remove a setting")
     rm_parser.add_argument(
         "target",
-        choices=[
-            "directories",
-            "enabled_sites",
-            "banned_groups",
-            "ignored_qualities",
-            "ignored_keywords",
-        ],
         help="Setting to remove",
     )
     rm_parser.add_argument(

@@ -28,6 +28,12 @@ Any UNIT3D trackers can be supported by adding the necessary info.
 ```sh
 git clone https://github.com/frenchcutgreenbean/UNIT3D-Upload-Checker.git
 cd UNIT3D-Upload-Checker
+
+# Create and activate a virtual environment (recommended for all platforms)
+python -m venv venv
+source venv/bin/activate      # On Linux/macOS
+venv\Scripts\activate         # On Windows
+
 pip install -r requirements.txt
 ```
 
@@ -66,36 +72,36 @@ python uploadchecker.py run-all -v
 
 ### Workflow Commands
 
-| Command | Description | Flags |
-|---------|-------------|-------|
-| `run-all` | Run complete workflow (scan → tmdb → search → save → export) | `-v`, `--no-mediainfo` |
-| `scan` | Scan directories for media files | `-v` |
-| `tmdb` | Search TMDB for movie information | `-v` |
-| `search` | Search trackers for duplicates | `-v` |
-| `save` | Create search data from results | `--no-mediainfo` |
+| Command    | Description                                               | Flags                |
+|------------|-----------------------------------------------------------|----------------------|
+| `run-all`  | Run complete workflow (scan → tmdb → search → save → export) | `-v`, `--no-mediainfo` |
+| `scan`     | Scan directories for media files                          | `-v`                 |
+| `tmdb`     | Search TMDB for movie information                         | `-v`                 |
+| `search`   | Search trackers for duplicates                            | `-v`                 |
+| `save`     | Create search data from results                           | `--no-mediainfo`     |
 
 ### Settings Commands
 
-| Command | Description | Examples |
-|---------|-------------|----------|
-| `setting` | View current settings | `python main.py setting directories` |
-| `setting-add` | Add or update a setting | `python main.py setting-add tmdb_key YOUR_KEY` |
-| `setting-rm` | Remove a setting value | `python main.py setting-rm directories /old/path/` |
+| Command        | Description                | Examples                                      |
+|----------------|---------------------------|-----------------------------------------------|
+| `setting`      | View current settings      | `python uploadchecker.py setting directories` |
+| `setting-add`  | Add or update a setting    | `python uploadchecker.py setting-add tmdb_key YOUR_KEY` |
+| `setting-rm`   | Remove a setting value     | `python uploadchecker.py setting-rm directories /old/path/` |
 
 ### Export Commands
 
-| Command | Description |
-|---------|-------------|
-| `txt` | Export results to text format |
-| `csv` | Export results to CSV format |
-| `gg` | Export GG bot commands |
-| `ua` | Export UA format |
+| Command | Description                    |
+|---------|--------------------------------|
+| `txt`   | Export results to text format  |
+| `csv`   | Export results to CSV format   |
+| `gg`    | Export GG bot commands         |
+| `ua`    | Export UA format               |
 
 ### Utility Commands
 
-| Command | Description |
-|---------|-------------|
-| `clear-data` | Clear all stored scan and search data |
+| Command      | Description                                 |
+|--------------|---------------------------------------------|
+| `clear-data` | Clear all stored scan and search data        |
 
 ## Command Line Examples
 
@@ -159,7 +165,8 @@ python uploadchecker.py csv
 Files that don't exist on the tracker, or have a new resolution/quality that would be an upgrade.
 
 ### Risky  
-Files that exist on the tracker but with different quality (e.g., web-dl vs remux). Manual verification recommended.
+Files that are likely a new quality, but are of a lower source than what's already uploaded. For most trackers these are
+safe to upload, but I recommend doing it manually. (example: Tracker has 1080p REMUX, You have 1080p WEB-DL.)
 
 ### Danger
 Files that require careful review:
@@ -184,3 +191,9 @@ Pull requests for new tracker support are welcome!
 
 - Python 3.7+
 - See `requirements.txt` for dependencies
+
+## Best Practices
+
+- Always use a virtual environment for Python projects (`python -m venv venv`)
+- Never install Python packages system-wide on Linux; use a virtual environment or `pipx` for CLI tools
+- Use `--help` to explore available commands and options
