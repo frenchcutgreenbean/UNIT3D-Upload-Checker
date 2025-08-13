@@ -9,7 +9,7 @@ def get_media_info(file_location=None):
     audio_info = {}
     subtitles = []
     video_info = {}
-    hdr_type = "SDR"
+    hdr_types = set()
 
     media_info = MediaInfo.parse(file_location)
 
@@ -24,11 +24,11 @@ def get_media_info(file_location=None):
             if hasattr(track, "hdr_format_commercial") and track.hdr_format_commercial:
                 hdr_commercial = str(track.hdr_format_commercial).lower()
                 if "dolby vision" in hdr_commercial:
-                    hdr_type = "Dolby Vision"
-                elif "hdr10+" in hdr_commercial:
-                    hdr_type = "HDR10+"
+                    hdr_types.add("Dolby Vision")
+                if "hdr10+" in hdr_commercial:
+                    hdr_types.add("HDR10+")
                 elif "hdr10" in hdr_commercial:
-                    hdr_type = "HDR10"
+                    hdr_types.add("HDR10")
 
             elif (
                 hasattr(track, "transfer_characteristics")
@@ -39,14 +39,14 @@ def get_media_info(file_location=None):
                     and track.hdr_format
                     and "2094" in str(track.hdr_format)
                 ):
-                    hdr_type = "HDR10+"
+                    hdr_types.add("HDR10+")
                 elif (
                     hasattr(track, "maximum_content_light_level")
                     and track.maximum_content_light_level
                 ):
-                    hdr_type = "HDR10"
+                    hdr_types.add("HDR10")
                 else:
-                    hdr_type = "HDR"
+                    hdr_types.add("HDR")
 
         elif track.track_type == "Audio":
             track_id = f"track_{str(track.track_id)}"
@@ -57,10 +57,14 @@ def get_media_info(file_location=None):
             audio_language.append(track.language)
         elif track.track_type == "Text":
             subtitles.append(track.language)
+
+    if not hdr_types:
+        hdr_types.add("SDR")
+
     return {
         "audio_language(s)": audio_language,
         "subtitle(s)": subtitles,
         "video_info": video_info,
         "audio_info": audio_info,
-        "hdr_type": hdr_type,
+        "hdr_type": ", ".join(sorted(hdr_types)),
     }
