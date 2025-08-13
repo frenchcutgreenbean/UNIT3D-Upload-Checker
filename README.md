@@ -1,10 +1,14 @@
-# Features
+# UNIT3D Upload Checker
+
+A command-line tool to scan directories for movies and check for duplicates across UNIT3D trackers.
+
+## Features
 
 - Scan directories for movies (.mkv only)
 - Parse filenames then search on TMDB
 - Use TMDB id + resolution (if found) to search trackers for unique movies
-- Ability to ignore groups, qualities, and other keywords.
-- Scan the file with mediainfo to ensure either English audio or English subtitles.
+- Ability to ignore groups, qualities, and other keywords
+- Scan files with mediainfo to ensure either English audio or English subtitles
 - Export possible uploads to gg-bot commands and .txt or .csv files
 
 ## Sites Supported
@@ -23,140 +27,160 @@ Any UNIT3D trackers can be supported by adding the necessary info.
 
 ```sh
 git clone https://github.com/frenchcutgreenbean/UNIT3D-Upload-Checker.git
-```
-
-```sh
 cd UNIT3D-Upload-Checker
-```
-
-```sh
 pip install -r requirements.txt
-```
-
-```sh
-chmod +x check.py
 ```
 
 ### Add Required Settings
 
-directories
-
+Add directories to scan:
 ```sh
-./check.py setting-add --target dir --set /home/movies/
+python uploadchecker.py setting-add directories /home/movies/
 ```
 
--t and -s accepted
-
-Add tracker key or keys: (aith, blu, fnp, rfx)
-
+Add tracker API keys:
 ```sh
-./check.py setting-add -t blu -s <api_key>
+python uploadchecker.py setting-add blu <api_key>
+python uploadchecker.py setting-add aith <api_key>
+python uploadchecker.py setting-add fnp <api_key>
+python uploadchecker.py setting-add rfx <api_key>
 ```
 
 Enable sites:
-
 ```sh
-./check.py setting-add -t sites -s blu
+python uploadchecker.py setting-add enabled_sites blu
+python uploadchecker.py setting-add enabled_sites aith
 ```
 
-Your TMDB api key.
-
+Add your TMDB API key:
 ```sh
-./check.py setting-add -t tmdb -s <api_key>
+python uploadchecker.py setting-add tmdb_key <api_key>
 ```
 
-run all
-
+Run the complete workflow:
 ```sh
-./check.py run-all -v
+python uploadchecker.py run-all -v
 ```
+
+## Commands
+
+### Workflow Commands
+
+| Command | Description | Flags |
+|---------|-------------|-------|
+| `run-all` | Run complete workflow (scan → tmdb → search → save → export) | `-v`, `--no-mediainfo` |
+| `scan` | Scan directories for media files | `-v` |
+| `tmdb` | Search TMDB for movie information | `-v` |
+| `search` | Search trackers for duplicates | `-v` |
+| `save` | Create search data from results | `--no-mediainfo` |
+
+### Settings Commands
+
+| Command | Description | Examples |
+|---------|-------------|----------|
+| `setting` | View current settings | `python main.py setting directories` |
+| `setting-add` | Add or update a setting | `python main.py setting-add tmdb_key YOUR_KEY` |
+| `setting-rm` | Remove a setting value | `python main.py setting-rm directories /old/path/` |
+
+### Export Commands
+
+| Command | Description |
+|---------|-------------|
+| `txt` | Export results to text format |
+| `csv` | Export results to CSV format |
+| `gg` | Export GG bot commands |
+| `ua` | Export UA format |
+
+### Utility Commands
+
+| Command | Description |
+|---------|-------------|
+| `clear-data` | Clear all stored scan and search data |
+
+## Command Line Examples
+
+### Settings Management
+```sh
+# View specific setting
+python uploadchecker.py setting directories
+
+# Add a directory
+python uploadchecker.py setting-add directories /home/user/movies/
+
+# Add API key
+python uploadchecker.py setting-add blu your_api_key_here
+
+# Remove a directory
+python uploadchecker.py setting-rm directories /old/path/
+
+# View available commands
+python uploadchecker.py --help
+
+# Get help for specific command
+python uploadchecker.py scan --help
+```
+
+### Workflow Examples
+```sh
+# Run complete workflow with verbose output
+python uploadchecker.py run-all -v
+
+# Run individual steps
+python uploadchecker.py scan -v
+python uploadchecker.py tmdb -v
+python uploadchecker.py search -v
+python uploadchecker.py save
+
+# Export results
+python uploadchecker.py gg
+python uploadchecker.py txt
+python uploadchecker.py csv
+```
+
+## Flags
+
+- `-v`, `--verbose` - Show detailed output during execution
+- `--no-mediainfo` - Skip mediainfo extraction (not recommended)
 
 ## Example Outputs
 
 ### CSV
-
 ![csv output](https://i.ibb.co/SmkvfV1/2024-04-03-19-38-21.png)
 
 ### TXT
-
-<https://github.com/frenchcutgreenbean/UNIT3D-Upload-Checker/blob/main/manual_txt_example.txt>
+<https://github.com/frenchcutgreenbean/UNIT3D-Upload-Checker/blob/uploadchecker/manual_txt_example.txt>
 
 ### GG
+<https://github.com/frenchcutgreenbean/UNIT3D-Upload-Checker/blob/uploadchecker/manual_bot_example.txt>
 
-<https://github.com/frenchcutgreenbean/UNIT3D-Upload-Checker/blob/main/manual_bot_example.txt>
+## Safety Categories
 
-## Accepted commands
+### Safe
+Files that don't exist on the tracker, or have a new resolution/quality that would be an upgrade.
 
-| Command | Description| Flags |
-|---------|------------|-------|
-| run-all | Runs all scanning, searching, and exporting functions. | -v -m |
-| setting | Prints a given setting's value.| |
-| setting-add | Adds or edits a setting. | |
-| setting-rm | Only works on lists, returns prompt to remove specific value. | |
+### Risky  
+Files that exist on the tracker but with different quality (e.g., web-dl vs remux). Manual verification recommended.
 
-*-v and -m only affect certain functions; see below.*
+### Danger
+Files that require careful review:
+- Year from filename differs from TMDB match
+- No English audio or subtitles found
+- Existing on tracker but quality couldn't be determined from filename
 
-### Examples
+## Adding New Trackers
 
-```sh
-./check.py setting -t dir
-['/home/user/media/'] 
-```
+To add support for additional UNIT3D trackers:
 
-```sh
-./check.py setting-add -t dir -s /home/user/movies
-/home/user/movies/  Successfully added to  directories
-```
+1. Edit `tracker_info.json` with tracker details
+2. Update `settings.py`:
+   - Add to `self.tracker_nicknames`
+   - Add to `self.default_settings["keys"]`
+3. Update `check.py`
+    - Add to `TRACKER_MAP`
+    
+Pull requests for new tracker support are welcome!
 
-```sh
-./check.py setting-rm -t dir
-Which option would you like to remove? ['/home/user/media/', '/home/user/movies/']
-Type in the number of the option you want to remove:
-0 being the first option, 1 being the second option, etc.
-0
-Removed: /home/user/media/
-```
+## Requirements
 
-### Manually run the commands in run-all
-
-| Command | Description | Flags |
-|---------|----------|-------|
-| scan | Scans directories in main.py| -v |
-| tmdb | Searches TMDB for found movies| -v |
-| search | Searches trackers by TMDB id|-v |
-| save | Creates search_data.json| -m |
-| gg | Creates gg auto_upload commands txt file| |
-| txt | Creates txt file with useful information | |
-| csv | Creates CSV file with useful information | |
-
--m or --mediainfo This will disable scanning with mediainfo. *Not recommended*.
-
--v or --verbose Prints more stuffs.
-
-## FAQ
-
-Q: What puts a movie in "safe"?
-
-- A: If the file does not exist on the tracker, or the resolution is new.
-
-Q: What puts a movie in "risky"?
-
-- A: The movie exists on the tracker, but the quality is new. e.g. web-dl, remux, etc.
-
-Q: What puts a movie in "danger"?
-
-- A: There are multiple reasons why the movie gets put in "danger".
-
-- 1: The year from the filename is different to the one matched on TMDB.
-
-- 2: Mediainfo couldn't find English language subtitles or audio.
-
-- 3: The movie exists on the tracker, but quality couldn't be extracted from filename.
-
-Q: Why is tracker x not supported?
-
-- A: I only added trackers I am on. Pull requests are welcomed!
-
-Q: How can I add support for different UNIT3D trackers?
-
-- A: First you need to edit tracker_info.json. Then, append the relevant details in settings.py. self.tracker_nicknames & self.default_settings["keys"]
+- Python 3.7+
+- See `requirements.txt` for dependencies
