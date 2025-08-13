@@ -4,7 +4,7 @@ import re
 import csv
 import sys
 import traceback
-from PTN.parse import PTN
+from .PTN.parse import PTN
 import json
 import requests
 from thefuzz import fuzz
@@ -141,7 +141,6 @@ class UploadChecker:
 
     def _scan_single_directory(self, dir: str, verbose=False):
         """Scan a single directory for media files."""
-        print("_scan_single_directory")
         dir_data = self.scan_data.get(dir, {})
 
         files = self._get_media_files(dir)
@@ -157,7 +156,6 @@ class UploadChecker:
 
     def _get_media_files(self, dir: str) -> List[str]:
         """Get all media files in directory."""
-        print(f"_get_media_files")
         files = []
         dir_path = Path(dir)
         for pattern in SUPPORTED_EXTENSIONS:
@@ -206,7 +204,6 @@ class UploadChecker:
 
         title, year = self._extract_title_and_year(parsed, file_name, verbose)
         quality = self._normalize_quality(parsed.get("quality"))
-
         return {
             "title": title,
             "year": year,
@@ -217,7 +214,7 @@ class UploadChecker:
                 else None
             ),
             "codec": parsed.get("codec"),
-            "group": self._extract_group(parsed),
+            "group": parsed.get("group"),
             "tmdb": None,
         }
 
@@ -246,12 +243,6 @@ class UploadChecker:
 
         clean_quality = re.sub(r"[^a-zA-Z]", "", quality).strip().lower()
         return QUALITY_MAPPINGS.get(clean_quality, clean_quality)
-
-    def _extract_group(self, parsed: dict) -> Optional[str]:
-        """Extract release group from parsed data."""
-        if "group" not in parsed:
-            return None
-        return re.sub(r"(\..*)", "", parsed["group"])
 
     # Get the tmdbId
     def get_tmdb(self, verbose=False):
@@ -343,7 +334,7 @@ class UploadChecker:
             print("Error searching TMDB: ", e)
 
     def _check_groups(self, verbose=False, file=None, tracker=None):
-        banned_groups = self.tracker_info[tracker].get("banned_groups", [])
+        banned_groups = self.tracker_info[tracker].get("bannedGroups", [])
         if not banned_groups:
             return False
 
@@ -450,12 +441,24 @@ class UploadChecker:
             "api_token": api_key,
         }
 
-        response = requests.get(url, params=params)
-        res_data = json.loads(response.content)
-        results = res_data.get("data", [])
+        all_results = []
+        while url:
+            response = requests.get(url, params=params)
+            res_data = json.loads(response.content)
+            results = res_data.get("data", [])
+            all_results.extend(results)
+
+            # Check for pagination
+            links = res_data.get("links", {})
+            next_url = links.get("next")
+            if next_url:
+                url = next_url
+                params = None  # Params are already included in next_url
+            else:
+                url = None
 
         # Handle results
-        return self._process_tracker_results(results, file_data, tracker)
+        return self._process_tracker_results(all_results, file_data, tracker)
 
     def _process_tracker_results(self, results, file_data, tracker):
         """Process tracker API results and return appropriate message."""
@@ -474,12 +477,10 @@ class UploadChecker:
             info = result["attributes"]
             tracker_resolution = info["resolution"]
             tracker_quality = re.sub(r"[^a-zA-Z]", "", info["type"]).strip()
-
             resolution_match = self._check_resolution_match(
                 file_resolution, tracker_resolution
             )
             quality_match = self._check_quality_match(file_quality, tracker_quality)
-
             # Exact match found
             if resolution_match and quality_match:
                 return True  # Exact dupe
@@ -487,7 +488,6 @@ class UploadChecker:
             # Store partial matches for analysis
             if resolution_match:
                 quality_matches.append(tracker_quality.lower())
-
         # Analyze partial matches
         return self._analyze_partial_matches(
             quality_matches, file_quality, file_resolution, tracker
@@ -507,7 +507,9 @@ class UploadChecker:
         """Check if qualities match."""
         if not file_quality:
             return False
-
+        # Rename disc to match quality hierarchy
+        if "disc" in tracker_quality.lower():
+            tracker_quality = "fulldisc"
         return file_quality.lower() == tracker_quality.lower()
 
     def _analyze_partial_matches(
@@ -516,10 +518,10 @@ class UploadChecker:
         """Analyze partial matches and return appropriate message."""
 
         if not quality_matches:
-            return f"Possible new release. {file_quality or ''} {file_resolution or ''}"
+            return f"Safe: New release. {file_quality or ''} {file_resolution or ''}"
 
         if not file_quality:
-            return f"Source found on {tracker}, but couldn't determine file quality. Manual search required."
+            return f"Danger: Source found on {tracker}, but couldn't determine file quality. Manual search required."
 
         # Check if this would be an upgrade
         is_upgrade = all(
@@ -528,9 +530,10 @@ class UploadChecker:
         )
 
         if is_upgrade:
-            return f"Resolution found on {tracker}, but seems like an upgrade. {file_quality}"
+            return f"Safe: Resolution found on {tracker}, but seems like an upgrade. {file_quality}"
         else:
-            return f"Resolution found on {tracker}, but could be a new quality. Manual search recommended."
+            # This means the quality is likely a downgrade to existing.
+            return f"Risky: Resolution found on {tracker}, but could be a new quality. Manual search recommended."
 
     def _print_tracker_result(self, tracker, result):
         """Print tracker search result in a readable format."""
@@ -674,18 +677,15 @@ class UploadChecker:
         result_lower = str(tracker_result).lower()
 
         # Safe categories
-        safe_keywords = ["not on", "possible", "upgrade"]
-        if any(keyword in result_lower for keyword in safe_keywords):
+        if "safe" in result_lower:
             return "safe"
 
         # Danger categories
-        danger_keywords = ["required", "manual"]
-        if any(keyword in result_lower for keyword in danger_keywords):
+        if "danger" in result_lower:
             return "danger"
 
         # Risky categories
-        risky_keywords = ["recommended", "new quality"]
-        if any(keyword in result_lower for keyword in risky_keywords):
+        if "risky" in result_lower:
             return "risky"
 
         # Default to danger for unknown cases
@@ -782,7 +782,6 @@ class UploadChecker:
                             f"{tracker_url}torrents?view=list&name={url_query}"
                         )
                         media_info = v["media_info"] if "media_info" in v else "None"
-                        print("Media Info: ", media_info)
                         clean_mi = ""
                         if media_info:
                             (
