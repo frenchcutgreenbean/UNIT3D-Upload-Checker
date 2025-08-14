@@ -660,7 +660,7 @@ class UploadChecker:
 
         return not has_english_audio and not has_english_subs
 
-    def _is_runtime_match(file_runtime, tmdb_runtime, delta=5):
+    def _is_runtime_match(self, file_runtime, tmdb_runtime, delta=5):
         try:
             return abs(int(file_runtime) - int(tmdb_runtime)) <= delta
         except (ValueError, TypeError):
@@ -691,7 +691,7 @@ class UploadChecker:
 
         file_year = file_data.get("year")
         tmdb_year = file_data.get("tmdb_year")
-        file_runtime = file_data.get("runtime")
+        file_runtime = file_data.get("media_info", {}).get("runtime")
         tmdb_id = file_data.get("tmdb")
 
         # Check year delta
@@ -716,6 +716,7 @@ class UploadChecker:
 
         # Decision logic
         checks = [year_match, runtime_match, language_match]
+
         safety_checks = sum(checks)
         return safety_checks
 
@@ -723,17 +724,25 @@ class UploadChecker:
         """Determine the safety category (safe/risky/danger) for the file."""
 
         # No English content = danger
+        # Most tracker require either English audio or subtitles
         if media_info and self._has_no_english_content(media_info):
             return "danger"
 
         # Year mismatch
         if file_data["year"] != file_data["tmdb_year"]:
+            print(
+                f"Year mismatch for {file_data['title']}: {file_data['year']} vs {file_data['tmdb_year']}"
+            )
+            print("Verifying mismatch...")
             safety_checks = self._handle_year_mismatch(file_data, media_info)
             if safety_checks == 3:
+                print(f"All mismatch checks passed for {file_data['title']}: Safe")
                 return "safe"
             elif safety_checks == 2:
+                print(f"Some mismatch checks passed for {file_data['title']}: Risky")
                 return "risky"
             else:
+                print(f"All mismatch checks failed for {file_data['title']}: Danger")
                 return "danger"
 
         # Analyze tracker result
