@@ -9,6 +9,7 @@ from .PTN.parse import PTN
 import json
 import requests
 from thefuzz import fuzz
+from urllib.parse import quote
 import time
 import math
 from pathlib import Path
@@ -274,7 +275,7 @@ class UploadChecker:
                     year = value["year"] if value["year"] else ""
                     # This seems possibly problematic
                     clean_title = re.sub(r"[^0-9a-zA-Z]", " ", title)
-                    query = clean_title.replace(" ", "%20")
+                    query = quote(clean_title)
                     try:
                         url = f"https://api.themoviedb.org/3/search/movie"
                         params = {
@@ -659,16 +660,81 @@ class UploadChecker:
 
         return not has_english_audio and not has_english_subs
 
+    def _is_runtime_match(file_runtime, tmdb_runtime, delta=5):
+        try:
+            return abs(int(file_runtime) - int(tmdb_runtime)) <= delta
+        except (ValueError, TypeError):
+            return False
+
+    def _get_tmdb_info(self, tmdb_id):
+        """Fetch TMDB information for a given ID."""
+        try:
+            url = f"https://api.themoviedb.org/3/movie/"
+            response = requests.get(
+                f"{url}{tmdb_id}", params={"api_key": self.tmdb_key}
+            )
+            response.raise_for_status()
+            info = {
+                "original_language": response.json().get("original_language"),
+                "runtime": response.json().get("runtime"),
+            }
+            return info
+        except requests.RequestException as e:
+            print(f"Error fetching TMDB info: {e}")
+            return {}
+
+    def _handle_year_mismatch(self, file_data, media_info):
+        # Year mismatch logic
+        year_match = False
+        runtime_match = False
+        language_match = False
+
+        file_year = file_data.get("year")
+        tmdb_year = file_data.get("tmdb_year")
+        file_runtime = file_data.get("runtime")
+        tmdb_id = file_data.get("tmdb")
+
+        # Check year delta
+        if file_year and tmdb_year:
+            try:
+                year_diff = abs(int(file_year) - int(tmdb_year))
+                if year_diff <= 1:
+                    year_match = True
+            except ValueError:
+                pass
+
+        # Get TMDB info for runtime and language
+        info = self._get_tmdb_info(tmdb_id) if tmdb_id else {}
+        if info:
+            # Runtime check
+            runtime_match = self._is_runtime_match(file_runtime, info.get("runtime"))
+            # Language check
+            tmdb_lang = info.get("original_language")
+            media_langs = media_info.get("audio_language(s)", []) if media_info else []
+            if tmdb_lang and any(lang.startswith(tmdb_lang) for lang in media_langs):
+                language_match = True
+
+        # Decision logic
+        checks = [year_match, runtime_match, language_match]
+        safety_checks = sum(checks)
+        return safety_checks
+
     def _determine_safety_category(self, file_data, tracker_result, media_info):
         """Determine the safety category (safe/risky/danger) for the file."""
-
-        # Year mismatch = danger
-        if file_data["year"] != file_data["tmdb_year"]:
-            return "danger"
 
         # No English content = danger
         if media_info and self._has_no_english_content(media_info):
             return "danger"
+
+        # Year mismatch
+        if file_data["year"] != file_data["tmdb_year"]:
+            safety_checks = self._handle_year_mismatch(file_data, media_info)
+            if safety_checks == 3:
+                return "safe"
+            elif safety_checks == 2:
+                return "risky"
+            else:
+                return "danger"
 
         # Analyze tracker result
         if isinstance(tracker_result, bool):
@@ -676,20 +742,13 @@ class UploadChecker:
 
         # String-based categorization
         result_lower = str(tracker_result).lower()
-
-        # Safe categories
         if "safe" in result_lower:
             return "safe"
-
-        # Danger categories
         if "danger" in result_lower:
             return "danger"
-
-        # Risky categories
         if "risky" in result_lower:
             return "risky"
 
-        # Default to danger for unknown cases
         return "danger"
 
     def _build_command_line(
@@ -718,9 +777,7 @@ class UploadChecker:
 
                 with out_path.open("w") as f:
                     for category in (
-                        ("safe", "risky")
-                        if self.settings.get("allow_risky")
-                        else ("safe",)
+                        ("safe", "risky") if self.settings["allow_risky"] else ("safe",)
                     ):
                         for value in data.get(category, {}).values():
                             line = self._build_command_line(
@@ -751,15 +808,13 @@ class UploadChecker:
 
             py_version = PY_VERSION
             script_path = ua_dir / "upload.py"
-
             for tracker, data in self.search_data.items():
                 out_path = Path(self.output_folder) / f"{tracker}_ua.txt"
                 tracker_flag = TRACKER_MAP[tracker]
-
                 with out_path.open("w") as f:
                     for category in (
                         ("safe", "risky")
-                        if self.settings.get("allow_risky")
+                        if self.current_settings.get("allow_risky")
                         else ("safe",)
                     ):
                         for value in data.get(category, {}).values():
@@ -794,7 +849,7 @@ class UploadChecker:
                     # Loop through each file in the section
                     for k, v in d.items():
                         title = k
-                        url_query = title.replace(" ", "%20")
+                        url_query = quote(title)
                         file_location = v["file_location"]
                         quality = v["quality"]
                         tmdb = v["tmdb"]
@@ -818,6 +873,7 @@ class UploadChecker:
                                 video_info,
                                 audio_info,
                                 hdr_type,
+                                runtime,
                             ) = media_info.values()
                             clean_mi = f"""
             Language(s): {audio_language}
@@ -825,6 +881,7 @@ class UploadChecker:
             Audio Info: {audio_info}
             Video Info: {video_info}
             HDR Type: {hdr_type}
+            Duration: {runtime} min
                             """
                         line = f"""
         Movie Title: {title}
@@ -879,7 +936,7 @@ class UploadChecker:
                         for safety, d in data.items():
                             for k, v in d.items():
                                 title = k
-                                url_query = title.replace(" ", "%20")
+                                url_query = quote(title)
                                 file_location = v["file_location"]
                                 quality = v["quality"]
                                 tmdb = v["tmdb"]
@@ -908,8 +965,9 @@ class UploadChecker:
                                         video_info,
                                         audio_info,
                                         hdr_type,
+                                        runtime,
                                     ) = media_info.values()
-                                    clean_mi = f"Language(s): {audio_language}, Subtitle(s): {subtitles}, Audio Info: {audio_info}, Video Info: {video_info}, HDR Type: {hdr_type}"
+                                    clean_mi = f"Language(s): {audio_language}, Subtitle(s): {subtitles}, Audio Info: {audio_info}, Video Info: {video_info}, HDR Type: {hdr_type}, Duration: {runtime} min"
 
                                 writer.writerow(
                                     {
