@@ -48,16 +48,10 @@ Examples:
 
     # Save command
     save_parser = subparsers.add_parser("save", help="Create search data from results")
-    save_parser.add_argument(
-        "--no-mediainfo", action="store_true", help="Skip mediainfo extraction"
-    )
 
     # Run-all command
     runall_parser = subparsers.add_parser(
         "run-all", help="Run complete workflow (scan → tmdb → search → save → export)"
-    )
-    runall_parser.add_argument(
-        "--no-mediainfo", action="store_true", help="Skip mediainfo extraction"
     )
     runall_parser.add_argument(
         "-v", "--verbose", action="store_true", help="Show detailed output"
@@ -151,10 +145,6 @@ def main():
         elif args.command in ["save", "run-all"]:
             if hasattr(args, "verbose"):
                 func_args["verbose"] = args.verbose
-            if hasattr(args, "no_mediainfo"):
-                func_args["mediainfo"] = not args.no_mediainfo
-            else:
-                func_args["mediainfo"] = True
 
         elif args.command == "setting":
             if hasattr(args, "target") and args.target:

@@ -549,7 +549,7 @@ class UploadChecker:
             print(f"{tracker}: {result}")
 
     # Create search_data.json
-    def create_search_data(self, mediainfo=True):
+    def create_search_data(self):
         """Create search data by processing scan results and categorizing by safety level."""
         try:
             print("Creating search data.")
@@ -1040,7 +1040,7 @@ class UploadChecker:
         except Exception as e:
             print("Error clearing json data: ", e)
 
-    def run_all(self, mediainfo=True, verbose=False):
+    def run_all(self, verbose=False):
         """Run the complete workflow: scan -> tmdb -> search -> create data -> export."""
         try:
             print("Starting complete workflow...")
@@ -1065,7 +1065,7 @@ class UploadChecker:
 
             # Step 4: Create search data
             print("\n--- Step 4: Creating Search Data ---")
-            self.create_search_data(mediainfo)
+            self.create_search_data()
 
             # Step 5: Export all formats
             print("\n--- Step 5: Exporting Results ---")

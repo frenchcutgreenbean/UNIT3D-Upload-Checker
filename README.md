@@ -29,7 +29,7 @@ Any UNIT3D trackers can be supported by adding the necessary info.
 git clone https://github.com/frenchcutgreenbean/UNIT3D-Upload-Checker.git
 cd UNIT3D-Upload-Checker
 
-# Create and activate a virtual environment (recommended for all platforms)
+# Create and activate a virtual environment (optional)
 python -m venv venv
 source venv/bin/activate      # On Linux/macOS
 venv\Scripts\activate         # On Windows
@@ -41,7 +41,7 @@ pip install -r requirements.txt
 
 Add directories to scan:
 ```sh
-python uploadchecker.py setting-add directories /home/movies/
+python uploadchecker.py setting-add dir /home/movies/
 ```
 
 Add tracker API keys:
@@ -86,7 +86,7 @@ python uploadchecker.py run-all -v
 |----------------|---------------------------|-----------------------------------------------|
 | `setting`      | View current settings      | `python uploadchecker.py setting directories` |
 | `setting-add`  | Add or update a setting    | `python uploadchecker.py setting-add tmdb_key YOUR_KEY` |
-| `setting-rm`   | Remove a setting value     | `python uploadchecker.py setting-rm directories /old/path/` |
+| `setting-rm`   | Remove a setting value     | `python uploadchecker.py setting-rm directories` |
 
 ### Export Commands
 
@@ -117,7 +117,8 @@ python uploadchecker.py setting-add directories /home/user/movies/
 python uploadchecker.py setting-add blu your_api_key_here
 
 # Remove a directory
-python uploadchecker.py setting-rm directories /old/path/
+# Returns options to remove specific one
+python uploadchecker.py setting-rm directories
 
 # View available commands
 python uploadchecker.py --help
@@ -146,8 +147,6 @@ python uploadchecker.py csv
 ## Flags
 
 - `-v`, `--verbose` - Show detailed output during execution
-- `--no-mediainfo` - Skip mediainfo extraction (not recommended)
-
 ## Example Outputs
 
 ### CSV
@@ -165,16 +164,17 @@ python uploadchecker.py csv
 Files that don't exist on the tracker, or have a new resolution/quality that would be an upgrade.
 
 ### Risky  
-Files that are likely a new quality, but are of a lower source than what's already uploaded. For most trackers these are
-safe to upload, but I recommend doing it manually. (example: Tracker has 1080p REMUX, You have 1080p WEB-DL.)
+Files that are likely a new quality, but are of a lower source than what's already uploaded. 
+(For most trackers these are safe to upload, but I recommend doing it manually.) 'allow_risky' can be enabled in settings to push these into exports.
 
 ### Danger
 Files that require careful review:
-- Year from filename differs from TMDB match
+- Year from filename differs from TMDB match (and failed 2/3 backup checks)
 - No English audio or subtitles found
-- Existing on tracker but quality couldn't be determined from filename
+- Existing on tracker and quality couldn't be determined from filename
 
-## Using with Upload-Assistant
+## Automating Uploads
+### Method 1
 I recommend using the upgraded fork from @Audionut
 https://github.com/Audionut/Upload-Assistant
 
@@ -182,9 +182,24 @@ This has support to call the output.txt file and upload all the safe matches usi
 
 Can be called like:
 ```sh
-py upload.py "path_to_unit3d-upload-checker_output_txt_file.txt" --trackers "AITHER" -ua --unit3d
+py upload.py "outputs/aither_uploads.txt" --trackers "AITHER" -ua --unit3d
 
 py upload.py "/home/user/bin/UNIT3D-Upload-Checker/outputs/lst_uploads.txt" --trackers "LST" -ua --unit3d
+```
+
+
+### Method 2
+Or you can use `run_commands.py` on your `tracker_ua.txt` or `tracker_gg.txt` with the ability to set virtual environments.
+
+Example calls:
+
+With venv
+```sh
+python3 run_commands.py /path/to/outputs/lst_ua.txt ua
+```
+Without
+```sh
+python3 run_commands.py /path/to/outputs/lst_ua.txt
 ```
 
 ## Adding New Trackers
@@ -204,9 +219,3 @@ Pull requests for new tracker support are welcome!
 
 - Python 3.7+
 - See `requirements.txt` for dependencies
-
-## Best Practices
-
-- Always use a virtual environment for Python projects (`python -m venv venv`)
-- Never install Python packages system-wide on Linux; use a virtual environment or `pipx` for CLI tools
-- Use `--help` to explore available commands and options
