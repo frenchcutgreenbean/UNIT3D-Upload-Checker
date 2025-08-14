@@ -4,6 +4,7 @@ import re
 import csv
 import sys
 import traceback
+import shlex
 from .PTN.parse import PTN
 import json
 import requests
@@ -29,7 +30,7 @@ TRACKER_MAP = {
 SUPPORTED_EXTENSIONS = ["*.mkv"]
 FUZZY_MATCH_THRESHOLD = 85
 MIN_VOTE_COUNT = 5  # Minimum vote count on TMDB to consider as a match. This might be problematic with obscure films
-
+PY_VERSION = "py" if sys.platform.startswith("win") else "python3"
 # Quality mappings
 QUALITY_MAPPINGS = {"bluray": "encode", "web": "webrip"}
 
@@ -691,65 +692,90 @@ class UploadChecker:
         # Default to danger for unknown cases
         return "danger"
 
-    # Export gg-bot auto_upload commands.
-    def export_gg(self):
-        if not self.gg_path or len(self.gg_path) == 0:
-            print("gg_path not configured.")
-            return
-        try:
-            for tracker, data in self.search_data.items():
-                # Erase / create new file.
-                with open(f"{self.output_folder}{tracker}_gg.txt", "w") as f:
-                    f.write("")
-                platform = sys.platform
-                py_version = "python3" if "linux" in platform else "py"
-                tracker_flag = TRACKER_MAP[tracker]
-                if data["safe"]:
-                    for file, value in data["safe"].items():
-                        line = (
-                            py_version
-                            + " "
-                            + f"{self.gg_path}auto_upload.py "
-                            + "-p "
-                            + value["file_location"]
-                            + " -t "
-                            + tracker_flag
-                        )
-                        with open(
-                            f"{self.output_folder}{tracker}_gg.txt", "a"
-                        ) as append:
-                            append.write(line + "\n")
+    def _build_command_line(
+        self, py_version: str, script_path: Path, *args: str
+    ) -> str:
+        cmd = [py_version, str(script_path), *args]
+        return " ".join(shlex.quote(arg) for arg in cmd)
 
-                print(
-                    "Exported gg-bot auto_upload commands.",
-                    f"{self.output_folder}{tracker}_gg.txt",
-                )
+    def export_gg(self):
+        """Exports results as commands ready to use for uploading with gg_bot."""
+        try:
+            if not self.gg_path:
+                print("gg_path not configured.")
+                return
+
+            gg_dir = Path(self.gg_path)
+            if gg_dir.name == "auto_upload.py":
+                gg_dir = gg_dir.parent
+
+            py_version = PY_VERSION
+            script_path = gg_dir / "auto_upload.py"
+
+            for tracker, data in self.search_data.items():
+                out_path = Path(self.output_folder) / f"{tracker}_gg.txt"
+                tracker_flag = TRACKER_MAP[tracker]
+
+                with out_path.open("w") as f:
+                    for category in (
+                        ("safe", "risky")
+                        if self.settings.get("allow_risky")
+                        else ("safe",)
+                    ):
+                        for value in data.get(category, {}).values():
+                            line = self._build_command_line(
+                                py_version,
+                                script_path,
+                                "-p",
+                                value["file_location"],
+                                "-t",
+                                tracker_flag,
+                            )
+                            f.write(line + "\n")
+
+                print(f"Exported gg-bot auto_upload commands to {out_path}")
 
         except Exception as e:
-            raise e
+            print(f"Error exporting gg-bot commands: {e}")
 
     def export_ua(self):
         """Exports results as commands ready to use for uploading with upload assistant."""
-        if not self.ua_path or len(self.ua_path) == 0:
-            print("ua_path not configured.")
-            return
-        if "upload.py" in self.ua_path:
-            self.ua_path = self.ua_path.replace("upload.py", "")
+        try:
+            if not self.ua_path:
+                print("ua_path not configured.")
+                return
 
-        for tracker, data in self.search_data.items():
-            with open(f"{self.output_folder}{tracker}_ua.txt", "w") as f:
-                py_version = "py" if "win" in sys.platform else "python3"
+            ua_dir = Path(self.ua_path)
+            if ua_dir.name == "upload.py":
+                ua_dir = ua_dir.parent
+
+            py_version = PY_VERSION
+            script_path = ua_dir / "upload.py"
+
+            for tracker, data in self.search_data.items():
+                out_path = Path(self.output_folder) / f"{tracker}_ua.txt"
                 tracker_flag = TRACKER_MAP[tracker]
-                if data["safe"]:
-                    for value in data["safe"].values():
-                        line = (
-                            py_version
-                            + f" {self.ua_path}upload.py --trackers {tracker_flag} {value['file_location']}\n"
-                        )
-                        f.write(line)
-            print(
-                f"Exported Upload-Assistant commands to {self.output_folder}{tracker}_ua.txt"
-            )
+
+                with out_path.open("w") as f:
+                    for category in (
+                        ("safe", "risky")
+                        if self.settings.get("allow_risky")
+                        else ("safe",)
+                    ):
+                        for value in data.get(category, {}).values():
+                            line = self._build_command_line(
+                                py_version,
+                                script_path,
+                                "--trackers",
+                                tracker_flag,
+                                value["file_location"],
+                            )
+                            f.write(line + "\n")
+
+                print(f"Exported Upload-Assistant commands to {out_path}")
+
+        except Exception as e:
+            print(f"Error exporting Upload-Assistant commands: {e}")
 
     # Export possible uploads to manual.txt
     def export_txt(self):
