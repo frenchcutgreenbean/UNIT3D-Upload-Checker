@@ -32,6 +32,7 @@ DEFAULT_SETTINGS = {
     "min_file_size": 800,  # Minimum file size in MB to consider a torrent
     "ignored_qualities": ["dvdrip", "bdrip", "cam", "ts", "telesync", "hdtv", "webrip"],
     "ignored_keywords": [],  # Keywords to ignore in torrent names e.g. "fanedit", "screener" etc.
+    "allow_risky": False,
 }
 
 # Patterns for easy CLI access to tracker nicknames
@@ -77,8 +78,26 @@ class Settings:
             self._load_current_settings()
             if not self.current_settings:
                 self.current_settings = self.default_settings
+            self._validate_settings_file()
         except Exception as e:
             print(f"Error initializing settings: {e}")
+
+    def _validate_settings_file(self):
+        """Ensure all keys from default settings exist in the user's settings file."""
+        updated = False
+        for key, default_value in self.default_settings.items():
+            if key not in self.current_settings:
+                self.current_settings[key] = default_value
+                print(f"Added missing setting: {key}")
+                updated = True
+            elif isinstance(default_value, dict):
+                for subkey, subval in default_value.items():
+                    if subkey not in self.current_settings[key]:
+                        self.current_settings[key][subkey] = subval
+                        print(f"Added missing sub-setting: {key}.{subkey}")
+                        updated = True
+        if updated:
+            self.write_settings()
 
     def _ensure_settings_file_exists(self):
         """Create settings file with defaults if it doesn't exist or is empty."""
@@ -197,7 +216,7 @@ class Settings:
             print(f"Error testing tracker API: {e}")
             return False
 
-    def setting_helper(self, target):
+    def _setting_helper(self, target):
         settings = self.current_settings
         nicknames = self.tracker_nicknames
         matching_keys = [key for key in settings.keys() if target in key]
@@ -239,7 +258,7 @@ class Settings:
                 return self._handle_tracker_key(target, value)
 
             # Get the actual setting key
-            matching_key = self.setting_helper(target)
+            matching_key = self._setting_helper(target)
             if not matching_key:
                 return False
 
@@ -252,7 +271,7 @@ class Settings:
 
     def remove_setting(self, target):
         try:
-            matching_key = self.setting_helper(target)
+            matching_key = self._setting_helper(target)
             if matching_key:
                 target = matching_key  # Update target to the full key
                 setting = self.current_settings[target]
