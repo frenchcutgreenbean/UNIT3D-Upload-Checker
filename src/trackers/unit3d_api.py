@@ -82,15 +82,30 @@ class UNIT3DTracker(BaseTracker):
         Returns:
             Dict with query parameters
         """
+        # Prefer IMDB ID over TMDB ID
+        imdb_id = file_data.get("imdb")
         tmdb_id = file_data.get("tmdb")
-
-        if not tmdb_id:
-            return {"name": file_data.get("title", "")}
-
-        return {
-            "tmdbId": tmdb_id,
-            "categories[]": [1, 2, 3, 4, 5],  # Common movie categories
-        }
+        
+        # Common movie categories
+        categories = {"categories[]": [1, 2, 3, 4, 5]}
+        
+        # If we have an IMDB ID, use it (UNIT3D expects IMDB ID without the 'tt' prefix)
+        if imdb_id and imdb_id.startswith("tt"):
+            imdb_id_without_tt = imdb_id.replace("tt", "")
+            return {
+                "imdbId": imdb_id_without_tt,
+                **categories
+            }
+            
+        # If no IMDB ID but we have TMDB ID, use that
+        elif tmdb_id:
+            return {
+                "tmdbId": tmdb_id,
+                **categories
+            }
+            
+        # Fall back to title search if no IDs available
+        return {"name": file_data.get("title", ""), **categories}
 
     def normalize_result(self, result: Dict, file_data: Dict) -> Tuple[str, str, str]:
         """

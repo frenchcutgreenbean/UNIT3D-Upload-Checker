@@ -98,15 +98,26 @@ class FenixTracker(BaseTracker):
         Returns:
             Dict with query parameters
         """
+        # Prefer IMDB ID over TMDB ID
+        imdb_id = file_data.get("imdb")
         tmdb_id = file_data.get("tmdb")
-
-        if not tmdb_id:
-            return {"search": file_data.get("title", "")}
-
-        return {
-            "action": "search",
-            "tmdb_id": f"movie/{tmdb_id}",
-        }
+        
+        # If we have an IMDB ID, use it (F3NIX expects the full IMDB ID with 'tt' prefix)
+        if imdb_id:
+            return {
+                "action": "search",
+                "imdb_id": imdb_id,
+            }
+            
+        # If no IMDB ID but we have TMDB ID, use that
+        elif tmdb_id:
+            return {
+                "action": "search",
+                "tmdb_id": f"movie/{tmdb_id}",
+            }
+            
+        # Fall back to title search if no IDs available
+        return {"search": file_data.get("title", "")}
 
     def normalize_result(self, result: Dict, file_data: Dict) -> Tuple[str, str, str]:
         """

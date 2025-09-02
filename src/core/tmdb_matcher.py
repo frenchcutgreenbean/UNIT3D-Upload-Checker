@@ -147,6 +147,8 @@ class TMDBMatcher:
                 match_result = self._is_title_match(result, clean_title=clean_title, secondary_title=secondary_title, verbose=verbose)
                 if match_result:
                     match_score, match_info = match_result
+                    imdb_id = self._get_imdb_from_tmdb(result.get("id"))
+                    file_data["imdb"] = imdb_id
                     self._update_file_with_tmdb_data(file_data, result, match_score, match_info)
                     
                     if stats:
@@ -188,6 +190,18 @@ class TMDBMatcher:
             print(f"  ✗ Error searching TMDB for '{title}': {e}")
             if stats:
                 stats["no_matches"] += 1
+
+    def _get_imdb_from_tmdb(self, tmdb_id: str) -> Optional[str]:
+        """Get IMDb ID from TMDB."""
+        url = f"https://api.themoviedb.org/3/movie/{tmdb_id}?api_key={self.tmdb_api_key}"
+        try:
+            response = requests.get(url)
+            response.raise_for_status()
+            data = response.json()
+            return data.get("imdb_id", '')
+        except Exception as e:
+            print(f"  ✗ Error fetching IMDb ID from TMDB: {e}")
+            return None
 
     def _make_tmdb_search_request(self, clean_title: str, year: str = "") -> Optional[list]:
         """Make TMDB API search request."""
