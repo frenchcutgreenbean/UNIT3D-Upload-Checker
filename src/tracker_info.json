@@ -1,6 +1,9 @@
 {
     "aither": {
         "url": "https://aither.cc/",
+        "map": "ATH",
+        "nicknames": ["aither", "aith"],
+        "driver": "UNIT3D",
         "bannedGroups": [
             "4K4U",
             "afm72",
@@ -80,8 +83,43 @@
             "YTS.MX"
         ]
     },
+    "beyondhd" : {
+        "url": "https://beyond-hd.me/",
+        "map": "BHD",
+        "nicknames": ["beyondhd", "bhd"],
+        "driver": "F3NIX",
+        "bannedGroups" : [
+                "iFT", 
+                "Sicario",
+                "TOMMY", 
+                "x0r",
+                "nikt0",
+                "EVO", 
+                "FGT",
+                "d3g",
+                "MeGusta",
+                "YIFY",
+                "tigole",
+                "TEKNO3D", 
+                "ProRes",
+                "MezRips",
+                "C4K",
+                "RARBG",
+                "4K4U",
+                "EASports",
+                "ReaLHD",
+                "Telly",
+                "AOC",
+                "WKS",
+                "SasukeducK",
+                "CRUCiBLE"
+            ]
+        },
     "blutopia": {
         "url": "https://blutopia.cc/",
+        "map": "BLU",
+        "nicknames": ["blutopia", "blu"],
+        "driver": "UNIT3D",
         "bannedGroups": [
             "[Oj]",
             "3LTON",
@@ -166,10 +204,16 @@
         ]
     },
     "fearnopeer": {
-        "url": "https://fearnopeer.com/"
+        "url": "https://fearnopeer.com/",
+        "map": "FNP",
+        "nicknames": ["fearnopeer", "fnp"],
+        "driver": "UNIT3D"
     },
     "lst": {
         "url": "https://lst.gg/",
+        "map": "LST", 
+        "nicknames": ["lst", "lstgg"],
+        "driver": "UNIT3D",
         "bannedGroups": [
             "aXXo",
             "BONE",
@@ -226,12 +270,34 @@
         ]
     },
     "onlyencodes": {
-        "url": "https://onlyencodes.cc/"
+        "url": "https://onlyencodes.cc/",
+        "map": "OE",
+        "nicknames": ["onlyencodes", "oe"],
+        "driver": "UNIT3D"
     },
     "reelflix": {
-        "url": "https://reelflix.xyz/"
+        "url": "https://reelflix.xyz/",
+        "map": "RFX", 
+        "nicknames": ["reelflix", "rfx"],
+        "driver": "UNIT3D"
     },
     "ulcx": {
-        "url": "https://upload.cx/"
+        "url": "https://upload.cx/",
+        "map": "ULCX",
+        "nicknames": ["ulcx"],
+        "driver": "UNIT3D"
+    },
+    "huno": {
+        "url": "https://hawke.uno/",
+        "map": "HUNO",
+        "nicknames": ["huno", "hawke"],
+        "driver": "UNIT3D"
+    
+    },
+    "yoinked": {
+        "url": "https://yoinked.org/",
+        "map": "YOINK",
+        "nicknames": ["yoinked", "yoink", "oink"],
+        "driver": "UNIT3D"
     }
 }

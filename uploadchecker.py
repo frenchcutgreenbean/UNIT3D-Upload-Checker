@@ -11,9 +11,11 @@ def create_parser():
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Examples:
+  %(prog)s init                       # Initialize configuration files  
   %(prog)s scan -v                    # Scan directories with verbose output
   %(prog)s run-all -v                 # Run complete workflow with verbose output
-  %(prog)s setting-add tmdb YOUR_KEY  # Add TMDB API key
+  %(prog)s add tmdb YOUR_KEY          # Add TMDB API key
+  %(prog)s add dir                    # Add a directory
   %(prog)s setting directories        # View current directories
   %(prog)s clear-data                 # Clear all stored data
         """,
@@ -48,6 +50,9 @@ Examples:
 
     # Save command
     save_parser = subparsers.add_parser("save", help="Create search data from results")
+    save_parser.add_argument(
+        "-v", "--verbose", action="store_true", help="Show detailed output"
+    )
 
     # Run-all command
     runall_parser = subparsers.add_parser(
@@ -68,7 +73,7 @@ Examples:
     )
 
     # Settings add
-    add_parser = subparsers.add_parser("setting-add", help="Add or update a setting")
+    add_parser = subparsers.add_parser("add", help="Add or update a setting")
     add_parser.add_argument(
         "target",
         help="Setting to add/update",
@@ -76,7 +81,7 @@ Examples:
     add_parser.add_argument("value", help="Value to set")
 
     # Settings remove
-    rm_parser = subparsers.add_parser("setting-rm", help="Remove a setting")
+    rm_parser = subparsers.add_parser("rm", help="Remove a setting")
     rm_parser.add_argument(
         "target",
         help="Setting to remove",
@@ -94,6 +99,7 @@ Examples:
 
     # === UTILITY COMMANDS ===
 
+    subparsers.add_parser("init", help="Initialize data files and configuration")
     subparsers.add_parser("clear-data", help="Clear all stored scan and search data")
 
     return parser
@@ -109,7 +115,50 @@ def main():
         parser.print_help()
         sys.exit(1)
 
-    # Initialize checker
+    # Handle init command specially (doesn't need UploadChecker instance)
+    if args.command == "init":
+        try:
+            from src.settings import Settings
+            from src.core import DataManager
+            from pathlib import Path
+            
+            print("Initializing UNIT3D Upload Checker...")
+            
+            # Initialize settings (creates data dir and settings.json)
+            settings = Settings()
+            print("✅ Created data directory and settings.json")
+            
+            # Initialize data manager files 
+            data_manager = DataManager()
+            enabled_sites = settings.current_settings.get("enabled_sites", [])
+            success = data_manager.initialize_files(enabled_sites)
+            if success:
+                print("✅ Created database.json and search_data.json")
+            else:
+                print("⚠️  Warning: Some data files may not have been created")
+            
+            # Create outputs directory
+            outputs_dir = Path("outputs")
+            outputs_dir.mkdir(exist_ok=True)
+            print("✅ Created outputs directory")
+            
+            print(f"\n🎉 Initialization complete!")
+            print(f"📁 Configuration: data/settings.json")
+            print(f"📁 Data files: data/")
+            print(f"📁 Output files: outputs/")
+            print(f"\nNext steps:")
+            print(f"  1. Add your TMDB API key: python uploadchecker.py add tmdb YOUR_KEY")
+            print(f"  2. Add directories to scan: python uploadchecker.py add dir /path/to/movies")
+            print(f"  3. Configure tracker API keys in data/settings.json")
+            print(f"  4. Run the workflow: python uploadchecker.py run-all -v")
+            
+            return
+            
+        except Exception as e:
+            print(f"❌ Error during initialization: {e}")
+            sys.exit(1)
+
+    # Initialize checker for all other commands
     try:
         ch = UploadChecker()
     except Exception as e:
@@ -124,8 +173,8 @@ def main():
         "save": ch.create_search_data,
         "run-all": ch.run_all,
         "clear-data": ch.clear_data,
-        "setting-add": ch.update_setting,
-        "setting-rm": ch.remove_setting,
+        "add": ch.update_setting,
+        "rm": ch.remove_setting,
         "setting": ch.get_setting,
         "txt": ch.export_txt,
         "csv": ch.export_csv,
@@ -150,11 +199,11 @@ def main():
             if hasattr(args, "target") and args.target:
                 func_args["target"] = args.target
 
-        elif args.command == "setting-add":
+        elif args.command == "add":
             func_args["target"] = args.target
             func_args["value"] = args.value
 
-        elif args.command == "setting-rm":
+        elif args.command == "rm":
             func_args["target"] = args.target
             if hasattr(args, "value") and args.value:
                 func_args["value"] = args.value

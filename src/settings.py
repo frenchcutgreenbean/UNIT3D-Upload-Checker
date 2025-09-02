@@ -17,59 +17,59 @@ DEFAULT_SETTINGS = {
     "directories": [],
     "tmdb_key": "",
     "enabled_sites": [],
-    "keys": {
-        "aither": "",
-        "blutopia": "",
-        "fearnopeer": "",
-        "reelflix": "",
-        "lst": "",
-        "ulcx": "",
-        "onlyencodes": "",
-    },
+    "keys": {},  # Will be populated from tracker_info.json
     "gg_path": "",  # Path to GG-Bot e.g. /home/user/gg-bot-upload-assistant/ --- Not required only for export_gg_bot()
     "ua_path": "",  # Path to upload-assistant, e.g. /home/user/uplaad-assistant/ --- Optional
     "search_cooldown": 5,  # In seconds, how long to wait between each tracker search. 30 requests per minute is max before hit rate limits. - HDVinnie
     "min_file_size": 800,  # Minimum file size in MB to consider a torrent
     "ignored_qualities": ["dvdrip", "bdrip", "cam", "ts", "telesync", "hdtv", "webrip"],
-    "ignored_keywords": [],  # Keywords to ignore in torrent names e.g. "fanedit", "screener" etc.
+    "ignored_keywords": ["dvd"],  # Keywords to ignore in torrent names e.g. "fanedit", "screener" etc.
     "allow_risky": False,
-}
-
-# Patterns for easy CLI access to tracker nicknames
-# These are used to map nicknames to actual tracker names
-TRACKER_NICKNAMES = {
-    "fnp": "fearnopeer",
-    "fearnopeer": "fearnopeer",
-    "reelflix": "reelflix",
-    "rfx": "reelflix",
-    "aither": "aither",
-    "aith": "aither",
-    "blu": "blutopia",
-    "blutopia": "blutopia",
-    "lst": "lst",
-    "lstgg": "lst",
-    "ulcx": "ulcx",
-    "upload.cx": "ulcx",
-    "onlyencodes": "onlyencodes",
-    "oe": "onlyencodes",
 }
 
 # Quality hierarchy for comparison
 # Most users would prefer REMUX to full discs
-QUALITY_HIERARCHY = {"webrip": 0, "webdl": 1, "encode": 2, "remux": 4, "fulldisc": 3}
+# webrip is lowest by default (unless from a high-quality group)
+QUALITY_HIERARCHY = { "webrip": 0, "webdl": 1, "encode": 2, "fulldisc": 4, "remux": 5}
+HQ_WEBRIP_GROUPS = ["zorosenpai", "teamsyndicate", "atelier"] # Groups that produce webrips better than encodes
 
 
 class Settings:
     def __init__(self):
         self.data_folder = DATA_FOLDER
         self.default_settings = DEFAULT_SETTINGS
-        self.tracker_nicknames = TRACKER_NICKNAMES
         self.quality_hierarchy = QUALITY_HIERARCHY
+        self.HQ_WEBRIP_GROUPS = HQ_WEBRIP_GROUPS
         self.current_settings = None
         self.tracker_info = None
+        self.tracker_nicknames = {}  # Will be populated from tracker_info.json
 
-        self._initialize_settings()
         self._load_tracker_info()
+        self._generate_tracker_data()
+        self._initialize_settings()
+
+    def _generate_tracker_data(self):
+        """Generate tracker nicknames and default keys from tracker_info.json."""
+        if not self.tracker_info:
+            return
+            
+        # Generate nicknames mapping
+        self.tracker_nicknames = {}
+        default_keys = {}
+        
+        for tracker, info in self.tracker_info.items():
+            # Add tracker name itself as a nickname
+            self.tracker_nicknames[tracker] = tracker
+            
+            # Add configured nicknames
+            for nickname in info.get("nicknames", []):
+                self.tracker_nicknames[nickname] = tracker
+            
+            # Set up default empty key
+            default_keys[tracker] = ""
+        
+        # Update default settings to include all tracker keys
+        self.default_settings["keys"] = default_keys
 
     def _initialize_settings(self):
         """Initialize settings file and load current settings."""
@@ -234,7 +234,7 @@ class Settings:
                 "Unique substrings accepted: dir, tmdb, sites, gg, search, size, dupes, banned, qual, keywords"
             )
             print(
-                "If you're trying to add a tracker key, you can use setting-add -t <site> -s <api_key>"
+                "If you're trying to add a tracker key, you can use add <site> <api_key>"
             )
             print("Accepted sites: ", nicknames.keys())
             return
@@ -245,10 +245,24 @@ class Settings:
                 "Unique substrings accepted: dir, tmdb, sites, gg, search, size, dupes, banned, qual, keywords"
             )
             print(
-                "If you're trying to add a tracker key, you can use setting-add -t <site> -s <api_key>"
+                "If you're trying to add a tracker key, you can use add <site> <api_key>"
             )
             print("Accepted sites: ", nicknames.keys())
             return
+
+    def get_setting(self, target):
+        setting = self._setting_helper(target)
+        if setting:
+            print(setting)
+        else:
+            print("Not set yet.")
+
+    def return_setting(self, target):
+        """Return the actual setting value without printing it."""
+        matching_key = self._setting_helper(target)
+        if matching_key:
+            return self.current_settings.get(matching_key)
+        return None
 
     def update_setting(self, target: str, value: str) -> bool:
         """Update a specific setting with improved structure."""
@@ -295,7 +309,7 @@ class Settings:
                         print("The setting is empty.")
                 else:
                     print("The setting is not a list.")
-                    print(f"Use setting-add -t {target} -s <new_value>")
+                    print(f"Use add {target} <new_value>")
                 self.write_settings()
         except Exception as e:
             print("Error removing setting:", e)
@@ -383,7 +397,7 @@ class Settings:
         # Check if API key exists
         if not self.current_settings["keys"].get(tracker):
             print(
-                f"No API key for {value}. Add one using: setting-add -t {value} -s <api_key>"
+                f"No API key for {value}. Add one using: add {value} <api_key>"
             )
             return False
 

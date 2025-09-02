@@ -10,6 +10,7 @@ A command-line tool to scan directories for movies and check for duplicates acro
 - Ability to ignore groups, qualities, and other keywords
 - Scan files with mediainfo to ensure either English audio or English subtitles
 - Export possible uploads to gg-bot commands and .txt or .csv files
+- Store information for fast subsequent searches.
 
 ## Sites Supported
 
@@ -22,6 +23,12 @@ A command-line tool to scan directories for movies and check for duplicates acro
 - Upload.cx
 
 Any UNIT3D trackers can be supported by adding the necessary info.
+
+## Warning
+
+I am not responsible for your accounts on any trackers. You should always verify the files yourself looking in the {site}_uploads.txt.
+
+It includes valuable information about your files, and links to the tracker for you to verify the results.
 
 ## Quick Start
 
@@ -39,28 +46,34 @@ pip install -r requirements.txt
 
 ### Add Required Settings
 
+Run init
+```sh
+python uploadchecker.py init
+```
+Now you can edit settings.json manually or continue using CLI:
+
 Add directories to scan:
 ```sh
-python uploadchecker.py setting-add dir /home/movies/
+python uploadchecker.py add dir /home/movies/
 ```
 
 Add tracker API keys:
 ```sh
-python uploadchecker.py setting-add blu <api_key>
-python uploadchecker.py setting-add aith <api_key>
-python uploadchecker.py setting-add fnp <api_key>
-python uploadchecker.py setting-add rfx <api_key>
+python uploadchecker.py add blu <api_key>
+python uploadchecker.py add aith <api_key>
+python uploadchecker.py add fnp <api_key>
+python uploadchecker.py add rfx <api_key>
 ```
 
 Enable sites:
 ```sh
-python uploadchecker.py setting-add enabled_sites blu
-python uploadchecker.py setting-add enabled_sites aith
+python uploadchecker.py add enabled_sites blu
+python uploadchecker.py add enabled_sites aith
 ```
 
 Add your TMDB API key:
 ```sh
-python uploadchecker.py setting-add tmdb_key <api_key>
+python uploadchecker.py add tmdb_key <api_key>
 ```
 
 Run the complete workflow:
@@ -85,8 +98,8 @@ python uploadchecker.py run-all -v
 | Command        | Description                | Examples                                      |
 |----------------|---------------------------|-----------------------------------------------|
 | `setting`      | View current settings      | `python uploadchecker.py setting directories` |
-| `setting-add`  | Add or update a setting    | `python uploadchecker.py setting-add tmdb_key YOUR_KEY` |
-| `setting-rm`   | Remove a setting value     | `python uploadchecker.py setting-rm directories` |
+| `add`  | Add or update a setting    | `python uploadchecker.py add tmdb_key YOUR_KEY` |
+| `rm`   | Remove a setting value     | `python uploadchecker.py rm directories` |
 
 ### Export Commands
 
@@ -106,19 +119,20 @@ python uploadchecker.py run-all -v
 ## Command Line Examples
 
 ### Settings Management
+
 ```sh
 # View specific setting
 python uploadchecker.py setting directories
 
 # Add a directory
-python uploadchecker.py setting-add directories /home/user/movies/
+python uploadchecker.py add directories /home/user/movies/
 
 # Add API key
-python uploadchecker.py setting-add blu your_api_key_here
+python uploadchecker.py add blu your_api_key_here
 
 # Remove a directory
 # Returns options to remove specific one
-python uploadchecker.py setting-rm directories
+python uploadchecker.py rm directories
 
 # View available commands
 python uploadchecker.py --help
@@ -189,15 +203,10 @@ py upload.py "/home/user/bin/UNIT3D-Upload-Checker/outputs/lst_uploads.txt" --tr
 
 
 ### Method 2
-Or you can use `run_commands.py` on your `tracker_ua.txt` or `tracker_gg.txt` with the ability to set virtual environments.
+Or you can use `run_commands.py` on your `tracker_ua.txt` or `tracker_gg.txt`
 
 Example calls:
 
-With venv
-```sh
-python3 run_commands.py /path/to/outputs/lst_ua.txt ua
-```
-Without
 ```sh
 python3 run_commands.py /path/to/outputs/lst_ua.txt
 ```
@@ -207,12 +216,7 @@ python3 run_commands.py /path/to/outputs/lst_ua.txt
 To add support for additional UNIT3D trackers:
 
 1. Edit `tracker_info.json` with tracker details
-2. Update `settings.py`:
-   - Add to `self.tracker_nicknames`
-   - Add to `self.default_settings["keys"]`
-3. Update `check.py`
-    - Add to `TRACKER_MAP`
-    
+
 Pull requests for new tracker support are welcome!
 
 ## Requirements
