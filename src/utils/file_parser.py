@@ -4,6 +4,10 @@ from typing import Dict, Any, Optional
 from guessit import guessit
 from ..PTN.parse import PTN
 from ..settings import Settings
+from ..utils.logger import get_logger
+
+# Initialize logger
+logger = get_logger()
 
 # Quality mappings
 QUALITY_MAPPINGS = {"bluray": "encode", "web": "webrip"}
@@ -43,7 +47,7 @@ class FileParser:
                 year = year_from_title
                 title = cleaned
                 if verbose:
-                    print(f"Year extracted from title -> {year}; title now: '{title}'")
+                    logger.debug(f"Year extracted from title -> {year}; title now: '{title}'")
 
         # Other common fields with fallbacks
         quality = ptn_info.get("quality") or guessit_info.get("quality") or ""
