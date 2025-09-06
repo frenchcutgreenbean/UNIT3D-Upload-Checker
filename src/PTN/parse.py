@@ -6,8 +6,9 @@ from .patterns import patterns, types
 
 
 class PTN(object):
-    def _escape_regex(self, string):
-        return re.sub(r'[\-\[\]{}()*+?.,\\\^$|#\s]', '\\$&', string)
+    @staticmethod
+    def _escape_regex(string):
+        return re.sub(r'[\-\[\]{}()*+?.,\\^$|#\s]', '\\$&', string)
 
     def __init__(self):
         self.torrent = None
@@ -19,7 +20,7 @@ class PTN(object):
         self.parts = None
 
     def _part(self, name, match, raw, clean):
-        # The main core instructuions
+        # The main core instructions
         self.parts[name] = clean
 
         if len(match) != 0:
@@ -41,7 +42,7 @@ class PTN(object):
         if name == 'group':
             self._part(name, [], None, clean)
         elif name == 'episodeName':
-            clean = re.sub(r'[\._]', ' ', clean)
+            clean = re.sub(r'[._]', ' ', clean)
             clean = re.sub(r'_+$', '', clean)
             self._part(name, [], None, clean.strip())
 
@@ -101,13 +102,13 @@ class PTN(object):
         if clean.find(' ') == -1 and clean.find('.') != -1:
             clean = re.sub(r'\.', ' ', clean)
         clean = re.sub('_', ' ', clean)
-        clean = re.sub(r'([\[\(_]|- )$', '', clean).strip()
+        clean = re.sub(r'([\[(_]|- )$', '', clean).strip()
 
         self._part('title', [], raw, clean)
 
         # Start process for end
-        clean = re.sub(r'(^[-\. ()]+)|([-\. ]+$)', '', self.excess_raw)
-        clean = re.sub(r'[\(\)\/]', ' ', clean)
+        clean = re.sub(r'(^[-. ()]+)|([-. ]+$)', '', self.excess_raw)
+        clean = re.sub(r'[()/]', ' ', clean)
         match = re.split(r'\.\.+| +', clean)
         if len(match) > 0 and isinstance(match[0], tuple):
             match = list(match[0])

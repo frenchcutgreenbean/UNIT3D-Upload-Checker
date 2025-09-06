@@ -1,10 +1,12 @@
-import os
 import json
+import os
 import traceback
 from pathlib import Path
-from typing import Dict, List, Union, Optional
+from typing import Dict, List, Optional
+
 import requests
 
+from src.utils.logger import logger
 
 # CONSTANTS
 PROJECT_ROOT = Path(__file__).parent.parent.resolve()
@@ -19,7 +21,7 @@ DEFAULT_SETTINGS = {
     "enabled_sites": [],
     "keys": {},  # Will be populated from tracker_info.json
     "gg_path": "",  # Path to GG-Bot e.g. /home/user/gg-bot-upload-assistant/ --- Not required only for export_gg_bot()
-    "ua_path": "",  # Path to upload-assistant, e.g. /home/user/uplaad-assistant/ --- Optional
+    "ua_path": "",  # Path to upload-assistant, e.g. /home/user/upload-assistant/ --- Optional
     "search_cooldown": 5,  # In seconds, how long to wait between each tracker search. 30 requests per minute is max before hit rate limits. - HDVinnie
     "min_file_size": 800,  # Minimum file size in MB to consider a torrent
     "ignored_qualities": ["dvdrip", "bdrip", "cam", "ts", "telesync", "hdtv", "webrip"],
@@ -80,7 +82,8 @@ class Settings:
                 self.current_settings = self.default_settings
             self._validate_settings_file()
         except Exception as e:
-            print(f"Error initializing settings: {e}")
+            logger.error(f"Error initializing settings: {e}")
+            logger.debug(traceback.format_exc())
 
     def _validate_settings_file(self):
         """Ensure all keys from default settings exist in the user's settings file."""
@@ -88,13 +91,13 @@ class Settings:
         for key, default_value in self.default_settings.items():
             if key not in self.current_settings:
                 self.current_settings[key] = default_value
-                print(f"Added missing setting: {key}")
+                logger.info(f"Added missing setting: {key}")
                 updated = True
             elif isinstance(default_value, dict):
                 for subkey, subval in default_value.items():
                     if subkey not in self.current_settings[key]:
                         self.current_settings[key][subkey] = subval
-                        print(f"Added missing sub-setting: {key}.{subkey}")
+                        logger.info(f"Added missing sub-setting: {key}.{subkey}")
                         updated = True
         if updated:
             self.write_settings()
@@ -128,10 +131,11 @@ class Settings:
             self.current_settings["directories"] = normalized_dirs
             self.write_settings()
         except Exception as e:
-            print(f"Error validating directories: {e}")
-            traceback.print_exc()
+            logger.error(f"Error validating directories: {e}")
+            logger.debug(traceback.format_exc())
 
-    def _clean_directory_paths(self, directories: List[str]) -> List[str]:
+    @staticmethod
+    def _clean_directory_paths(directories: List[str]) -> List[str]:
         """Remove trailing slashes and filter existing directories."""
         cleaned = []
         for dir_path in directories:
@@ -139,10 +143,11 @@ class Settings:
             if os.path.exists(clean_path):
                 cleaned.append(clean_path)
             else:
-                print(f"{dir_path} does not exist, removing")
+                logger.warning(f"{dir_path} does not exist, removing")
         return cleaned
 
-    def _remove_redundant_paths(self, directories: List[str]) -> List[str]:
+    @staticmethod
+    def _remove_redundant_paths(directories: List[str]) -> List[str]:
         """Remove child directories when parent is already included."""
         if len(directories) <= 1:
             return directories
@@ -161,7 +166,8 @@ class Settings:
 
         return filtered
 
-    def _normalize_directory_paths(self, directories: List[str]) -> List[str]:
+    @staticmethod
+    def _normalize_directory_paths(directories: List[str]) -> List[str]:
         """Ensure all paths end with appropriate separator."""
         return [
             dir_path if dir_path.endswith(os.sep) else dir_path + os.sep
@@ -176,29 +182,30 @@ class Settings:
 
             if response.status_code == 200:
                 self.current_settings["tmdb_key"] = key
-                print("TMDB key is valid and was added")
+                logger.success("TMDB key is valid and was added")
                 return True
             else:
-                print("Invalid TMDB API Key")
+                logger.error("Invalid TMDB API Key")
                 return False
         except Exception as e:
-            print(f"Error validating TMDB API: {e}")
+            logger.error(f"Error validating TMDB API: {e}")
+            logger.debug(traceback.format_exc())
             return False
 
     def validate_key(self, key: str, target: str) -> bool:
         """Validate tracker API key."""
         tracker = self._get_tracker_from_nickname(target)
         if not tracker:
-            print(f"{target} is not a supported site")
+            logger.error(f"{target} is not a supported site")
             return False
 
         if not self._test_tracker_api(tracker, key):
-            print("Invalid API Key")
+            logger.error("Invalid API Key")
             return False
 
         self.current_settings["keys"][tracker] = key
         self.write_settings()
-        print(f"Key is valid and was added to {tracker}")
+        logger.success(f"Key is valid and was added to {tracker}")
         return True
 
     def _get_tracker_from_nickname(self, nickname: str) -> Optional[str]:
@@ -213,7 +220,8 @@ class Settings:
             response = requests.get(url, params=test_params, timeout=10)
             return not response.history  # No redirect means valid key
         except Exception as e:
-            print(f"Error testing tracker API: {e}")
+            logger.error(f"Error testing tracker API: {e}")
+            logger.debug(traceback.format_exc())
             return False
 
     def _setting_helper(self, target):
@@ -226,36 +234,36 @@ class Settings:
         if len(matching_keys) == 1:
             return matching_keys[0]
         elif len(matching_keys) > 1:
-            print(
+            logger.warning(
                 "Multiple settings match the provided substring. Please provide a more specific target."
             )
-            print(settings.keys())
-            print(
+            logger.info(f"Available settings: {settings.keys()}")
+            logger.info(
                 "Unique substrings accepted: dir, tmdb, sites, gg, search, size, dupes, banned, qual, keywords"
             )
-            print(
+            logger.info(
                 "If you're trying to add a tracker key, you can use add <site> <api_key>"
             )
-            print("Accepted sites: ", nicknames.keys())
-            return
+            logger.info(f"Accepted sites: {nicknames.keys()}")
+            return None
         else:
-            print(target, " is not a supported setting")
-            print("Accepted targets: ", settings.keys())
-            print(
+            logger.error(f"{target} is not a supported setting")
+            logger.info(f"Accepted targets: {settings.keys()}")
+            logger.info(
                 "Unique substrings accepted: dir, tmdb, sites, gg, search, size, dupes, banned, qual, keywords"
             )
-            print(
+            logger.info(
                 "If you're trying to add a tracker key, you can use add <site> <api_key>"
             )
-            print("Accepted sites: ", nicknames.keys())
-            return
+            logger.info(f"Accepted sites: {nicknames.keys()}")
+            return None
 
     def get_setting(self, target):
         setting = self._setting_helper(target)
         if setting:
-            print(setting)
+            logger.info(setting)
         else:
-            print("Not set yet.")
+            logger.warning("Not set yet.")
 
     def return_setting(self, target):
         """Return the actual setting value without printing it."""
@@ -279,8 +287,8 @@ class Settings:
             return self._update_setting_by_type(matching_key, value)
 
         except Exception as e:
-            print(f"Error updating setting: {e}")
-            traceback.print_exc()
+            logger.error(f"Error updating setting: {e}")
+            logger.debug(traceback.format_exc())
             return False
 
     def remove_setting(self, target):
@@ -291,33 +299,33 @@ class Settings:
                 setting = self.current_settings[target]
                 if isinstance(setting, list):
                     if len(setting) > 0:
-                        print(
-                            "Which option would you like to remove?",
-                            setting,
-                            "\nType in the number of the option you want to remove:",
-                            "\n0 being the first option, 1 being the second option, etc.",
+                        logger.info(
+                            f"Which option would you like to remove? {setting}"
+                            "\nType in the number of the option you want to remove:"
+                            "\n0 being the first option, 1 being the second option, etc."
                         )
                         option = int(input())
                         if option < 0 or option >= len(setting):
-                            print("Option out of range")
+                            logger.error("Option out of range")
                             return
                         removed_item = setting.pop(option)
                         # Remove trailing backslash if exists
                         removed_item = removed_item.rstrip("\\")
-                        print("Removed:", removed_item)
+                        logger.success(f"Removed: {removed_item}")
                     else:
-                        print("The setting is empty.")
+                        logger.warning("The setting is empty.")
                 else:
-                    print("The setting is not a list.")
-                    print(f"Use add {target} <new_value>")
+                    logger.warning("The setting is not a list.")
+                    logger.info(f"Use add {target} <new_value>")
                 self.write_settings()
         except Exception as e:
-            print("Error removing setting:", e)
+            logger.error(f"Error removing setting: {e}")
+            logger.debug(traceback.format_exc())
 
     def _handle_tracker_key(self, target: str, value: str) -> bool:
         """Handle tracker API key updates."""
         if not value:
-            print("No API key provided")
+            logger.error("No API key provided")
             return False
         return self.validate_key(value, target)
 
@@ -335,7 +343,7 @@ class Settings:
 
         handler = type_handlers.get(type(current_value))
         if not handler:
-            print(f"Unsupported setting type: {type(current_value)}")
+            logger.error(f"Unsupported setting type: {type(current_value)}")
             return False
 
         success = handler(setting_key, value)
@@ -352,7 +360,7 @@ class Settings:
             return False
 
         self.current_settings[setting_key] = value
-        print(f"{value} successfully added to {setting_key}")
+        logger.success(f"{value} successfully added to {setting_key}")
         return True
 
     def _handle_list_setting(self, setting_key: str, value: str) -> bool:
@@ -377,47 +385,47 @@ class Settings:
                 normalized_path = value if value.endswith(os.sep) else value + os.sep
                 if normalized_path not in self.current_settings[setting_key]:
                     self.current_settings[setting_key].append(normalized_path)
-                    print(f"{value} successfully added to {setting_key}")
+                    logger.success(f"{value} successfully added to {setting_key}")
                     return True
                 else:
-                    print(f"{value} already in {setting_key}")
+                    logger.warning(f"{value} already in {setting_key}")
                     return False
             else:
-                print(f"Directory {value} does not exist")
+                logger.error(f"Directory {value} does not exist")
                 return False
 
     def _handle_enabled_sites(self, setting_key: str, value: str) -> bool:
         """Handle enabled sites additions."""
         if value not in self.tracker_nicknames:
-            print(f"{value} is not a supported site")
+            logger.error(f"{value} is not a supported site")
             return False
 
         tracker = self.tracker_nicknames[value]
 
         # Check if API key exists
         if not self.current_settings["keys"].get(tracker):
-            print(
+            logger.error(
                 f"No API key for {value}. Add one using: add {value} <api_key>"
             )
             return False
 
         # Check for duplicates
         if tracker in self.current_settings[setting_key]:
-            print(f"{value} already in {setting_key}")
+            logger.warning(f"{value} already in {setting_key}")
             return False
 
         self.current_settings[setting_key].append(tracker)
-        print(f"{tracker} successfully added to {setting_key}")
+        logger.success(f"{tracker} successfully added to {setting_key}")
         return True
 
     def _handle_generic_list(self, setting_key: str, value: str) -> bool:
         """Handle generic list additions (banned_groups, ignored_qualities, etc.)."""
         if value in self.current_settings[setting_key]:
-            print(f"{value} already in {setting_key}")
+            logger.warning(f"{value} already in {setting_key}")
             return False
 
         self.current_settings[setting_key].append(value)
-        print(f"{value} successfully added to {setting_key}")
+        logger.success(f"{value} successfully added to {setting_key}")
         return True
 
     def _handle_bool_setting(self, setting_key: str, value: str) -> bool:
@@ -426,14 +434,14 @@ class Settings:
 
         if value_lower in ["true", "t", "1", "yes", "y"]:
             self.current_settings[setting_key] = True
-            print(f"{setting_key} set to True")
+            logger.success(f"{setting_key} set to True")
             return True
         elif value_lower in ["false", "f", "0", "no", "n"]:
             self.current_settings[setting_key] = False
-            print(f"{setting_key} set to False")
+            logger.success(f"{setting_key} set to False")
             return True
         else:
-            print(
+            logger.error(
                 f"Invalid boolean value '{value}'. Use: true/false, t/f, 1/0, yes/no, y/n"
             )
             return False
@@ -443,15 +451,15 @@ class Settings:
         try:
             int_value = int(value)
             self.current_settings[setting_key] = int_value
-            print(f"{value} successfully added to {setting_key}")
+            logger.success(f"{value} successfully added to {setting_key}")
             return True
         except ValueError:
-            print(f"Invalid integer value: {value}")
+            logger.error(f"Invalid integer value: {value}")
             return False
 
     def is_upgrade(self, file, tr):
         if not file or not tr:
-            print("error comparing qualities")
+            logger.error("Error comparing qualities")
             return False
         if (
             file not in self.quality_hierarchy.keys()
@@ -463,16 +471,19 @@ class Settings:
         else:
             return False
 
-    def _read_json_file(self, filepath: Path) -> Optional[Dict]:
+    @staticmethod
+    def _read_json_file(filepath: Path) -> Optional[Dict]:
         """Read and parse JSON file."""
         try:
             with open(filepath, "r") as file:
                 return json.load(file)
         except Exception as e:
-            print(f"Error reading {filepath}: {e}")
+            logger.error(f"Error reading {filepath}: {e}")
+            logger.debug(traceback.format_exc())
             return None
 
-    def _write_json_file(self, filepath: Path, data: Dict) -> bool:
+    @staticmethod
+    def _write_json_file(filepath: Path, data: Dict) -> bool:
         """Write data to JSON file."""
         try:
             filepath.parent.mkdir(exist_ok=True)
@@ -480,7 +491,8 @@ class Settings:
                 json.dump(data, outfile, indent=2)
             return True
         except Exception as e:
-            print(f"Error writing {filepath}: {e}")
+            logger.error(f"Error writing {filepath}: {e}")
+            logger.debug(traceback.format_exc())
             return False
 
     def write_settings(self):
