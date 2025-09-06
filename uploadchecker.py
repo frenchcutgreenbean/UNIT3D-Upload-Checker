@@ -1,6 +1,14 @@
 #!/usr/bin/env python3
 import argparse
 import sys
+import traceback
+
+# Import logger early to make it available for all modules
+from src.utils.logger import get_logger
+
+logger = get_logger()
+
+# Only import UploadChecker after logger is configured
 from src.check import UploadChecker
 
 
@@ -31,6 +39,9 @@ Examples:
     scan_parser.add_argument(
         "-v", "--verbose", action="store_true", help="Show detailed output"
     )
+    scan_parser.add_argument(
+        "--log", action="store_true", help="Enable file logging"
+    )
 
     # TMDB command
     tmdb_parser = subparsers.add_parser(
@@ -38,6 +49,9 @@ Examples:
     )
     tmdb_parser.add_argument(
         "-v", "--verbose", action="store_true", help="Show detailed output"
+    )
+    tmdb_parser.add_argument(
+        "--log", action="store_true", help="Enable file logging"
     )
 
     # Search command
@@ -47,11 +61,17 @@ Examples:
     search_parser.add_argument(
         "-v", "--verbose", action="store_true", help="Show detailed output"
     )
+    search_parser.add_argument(
+        "--log", action="store_true", help="Enable file logging"
+    )
 
     # Save command
     save_parser = subparsers.add_parser("save", help="Create search data from results")
     save_parser.add_argument(
         "-v", "--verbose", action="store_true", help="Show detailed output"
+    )
+    save_parser.add_argument(
+        "--log", action="store_true", help="Enable file logging"
     )
 
     # Run-all command
@@ -60,6 +80,9 @@ Examples:
     )
     runall_parser.add_argument(
         "-v", "--verbose", action="store_true", help="Show detailed output"
+    )
+    runall_parser.add_argument(
+        "--log", action="store_true", help="Enable file logging"
     )
 
     # === SETTINGS COMMANDS ===
@@ -92,10 +115,25 @@ Examples:
 
     # === EXPORT COMMANDS ===
 
-    subparsers.add_parser("txt", help="Export results to text format")
-    subparsers.add_parser("csv", help="Export results to CSV format")
-    subparsers.add_parser("gg", help="Export GG format")
-    subparsers.add_parser("ua", help="Export UA format")
+    txt_parser = subparsers.add_parser("txt", help="Export results to text format")
+    txt_parser.add_argument(
+        "--log", action="store_true", help="Enable file logging"
+    )
+    
+    csv_parser = subparsers.add_parser("csv", help="Export results to CSV format")
+    csv_parser.add_argument(
+        "--log", action="store_true", help="Enable file logging"
+    )
+    
+    gg_parser = subparsers.add_parser("gg", help="Export GG format")
+    gg_parser.add_argument(
+        "--log", action="store_true", help="Enable file logging"
+    )
+    
+    ua_parser = subparsers.add_parser("ua", help="Export UA format")
+    ua_parser.add_argument(
+        "--log", action="store_true", help="Enable file logging"
+    )
 
     # === UTILITY COMMANDS ===
 
@@ -106,14 +144,20 @@ Examples:
 
 
 def main():
-    """Main entry point for the Upload Checker application."""
+    """Main entry point for the script."""
     parser = create_parser()
     args = parser.parse_args()
 
-    # Show help if no command provided
+    # Show help if no command is provided
     if not args.command:
         parser.print_help()
         sys.exit(1)
+    
+    # Setup logging if requested
+    if hasattr(args, 'log') and args.log:
+        verbose = hasattr(args, 'verbose') and args.verbose
+        logger.setup_file_logging(verbose)
+        logger.debug("File logging enabled")
 
     # Handle init command specially (doesn't need UploadChecker instance)
     if args.command == "init":
@@ -122,47 +166,60 @@ def main():
             from src.core import DataManager
             from pathlib import Path
             
-            print("Initializing UNIT3D Upload Checker...")
+            logger.section("Initializing UNIT3D Upload Checker")
             
             # Initialize settings (creates data dir and settings.json)
             settings = Settings()
-            print("✅ Created data directory and settings.json")
+            logger.success("Created data directory and settings.json")
             
             # Initialize data manager files 
             data_manager = DataManager()
             enabled_sites = settings.current_settings.get("enabled_sites", [])
             success = data_manager.initialize_files(enabled_sites)
             if success:
-                print("✅ Created database.json and search_data.json")
+                logger.success("Created database.json and search_data.json")
             else:
-                print("⚠️  Warning: Some data files may not have been created")
-            
-            # Create outputs directory
-            outputs_dir = Path("outputs")
-            outputs_dir.mkdir(exist_ok=True)
-            print("✅ Created outputs directory")
-            
-            print(f"\n🎉 Initialization complete!")
-            print(f"📁 Configuration: data/settings.json")
-            print(f"📁 Data files: data/")
-            print(f"📁 Output files: outputs/")
-            print(f"\nNext steps:")
-            print(f"  1. Add your TMDB API key: python uploadchecker.py add tmdb YOUR_KEY")
-            print(f"  2. Add directories to scan: python uploadchecker.py add dir /path/to/movies")
-            print(f"  3. Configure tracker API keys in data/settings.json")
-            print(f"  4. Run the workflow: python uploadchecker.py run-all -v")
-            
-            return
-            
+                logger.warning("Some data files may not have been created")
         except Exception as e:
-            print(f"❌ Error during initialization: {e}")
+            logger.error(f"Failed to initialize Upload Checker: {e}")
             sys.exit(1)
+        
+        # Create outputs directory
+        outputs_dir = Path("outputs")
+        outputs_dir.mkdir(exist_ok=True)
+        # Create .gitignore in outputs directory if it doesn't exist
+        gitignore_file = outputs_dir / ".gitignore"
+        if not gitignore_file.exists():
+            with open(gitignore_file, "w") as f:
+                f.write("# Ignore everything in this directory\n*\n# Except this file\n!.gitignore\n")
+            logger.success("Created outputs directory with .gitignore")
+        else:
+            logger.success("Outputs directory already exists")
+            
+        # Create logs directory
+        logs_dir = Path("logs")
+        logs_dir.mkdir(exist_ok=True)
+        # Create .gitignore in logs directory if it doesn't exist
+        gitignore_file = logs_dir / ".gitignore"
+        if not gitignore_file.exists():
+            with open(gitignore_file, "w") as f:
+                f.write("# Ignore everything in this directory\n*\n# Except this file\n!.gitignore\n")
+            logger.success("Created logs directory with .gitignore")
+        else:
+            logger.success("Logs directory already exists")
+            
+        logger.success("Initialization complete")
+        logger.info("You can now add settings with 'python uploadchecker.py add <setting> <value>'")
+        logger.info("Example: python uploadchecker.py add dir /home/movies/")
+        
+        return
 
     # Initialize checker for all other commands
     try:
         ch = UploadChecker()
     except Exception as e:
-        print(f"Failed to initialize Upload Checker: {e}")
+        logger.error(f"Failed to initialize Upload Checker: {e}")
+        logger.debug(traceback.format_exc())
         sys.exit(1)
 
     # Command mapping
@@ -216,13 +273,11 @@ def main():
             sys.exit(1)
 
     except KeyboardInterrupt:
-        print("\nOperation cancelled by user.")
+        logger.info("\nOperation cancelled by user.")
         sys.exit(1)
     except Exception as e:
-        print(f"An error occurred: {e}")
-        import traceback
-
-        traceback.print_exc()
+        logger.error(f"An error occurred: {e}")
+        logger.debug(traceback.format_exc())
         sys.exit(1)
 
 
