@@ -15,6 +15,7 @@ A command-line tool to scan directories for movies and check for duplicates acro
 ## Sites Supported
 
 - Aither
+- BeyondHD
 - Blutopia
 - FearNoPeer
 - LST
@@ -87,11 +88,11 @@ python uploadchecker.py run-all -v
 
 | Command    | Description                                               | Flags                |
 |------------|-----------------------------------------------------------|----------------------|
-| `run-all`  | Run complete workflow (scan → tmdb → search → save → export) | `-v`, `--no-mediainfo` |
-| `scan`     | Scan directories for media files                          | `-v`                 |
-| `tmdb`     | Search TMDB for movie information                         | `-v`                 |
-| `search`   | Search trackers for duplicates                            | `-v`                 |
-| `save`     | Create search data from results                           | `--no-mediainfo`     |
+| `run-all`  | Run complete workflow (scan → tmdb → search → save → export) | `-v`, `--no-mediainfo`, `--log` |
+| `scan`     | Scan directories for media files                          | `-v`, `--log`        |
+| `tmdb`     | Search TMDB for movie information                         | `-v`, `--log`        |
+| `search`   | Search trackers for duplicates                            | `-v`, `--log`        |
+| `save`     | Create search data from results                           | `--no-mediainfo`, `--log` |
 
 ### Settings Commands
 
@@ -101,14 +102,22 @@ python uploadchecker.py run-all -v
 | `add`  | Add or update a setting    | `python uploadchecker.py add tmdb_key YOUR_KEY` |
 | `rm`   | Remove a setting value     | `python uploadchecker.py rm directories` |
 
+### Logging
+
+Most commands support the `--log` flag to enable file logging. When enabled:
+- Log files are saved to the `logs/` directory with timestamps
+- Log level is set to DEBUG when used with the `-v` flag
+- Logs include colored output in the console and detailed info in the file
+- Log files use the format `uploadchecker_YYYYMMDD_HHMMSS.log`
+
 ### Export Commands
 
-| Command | Description                    |
-|---------|--------------------------------|
-| `txt`   | Export results to text format  |
-| `csv`   | Export results to CSV format   |
-| `gg`    | Export GG bot commands         |
-| `ua`    | Export UA format               |
+| Command | Description                    | Options           |
+|---------|--------------------------------|-------------------|
+| `txt`   | Export results to text format  | `--log`           |
+| `csv`   | Export results to CSV format   | `--log`           |
+| `gg`    | Export GG bot commands         | `--log`           |
+| `ua`    | Export upload-assistant commands | `--log`         |
 
 ### Utility Commands
 
@@ -117,6 +126,16 @@ python uploadchecker.py run-all -v
 | `clear-data` | Clear all stored scan and search data        |
 
 ## Command Line Examples
+
+### Enabling Logging
+
+```bash
+# Run complete workflow with verbose output and file logging
+python uploadchecker.py run-all -v --log
+
+# Export to TXT with logging
+python uploadchecker.py txt --log
+```
 
 ### Settings Management
 

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-from typing import Dict, Optional
+from typing import Dict
 from .base import BaseTracker
 from .unit3d_api import UNIT3DTracker
 from .fenix_api import FenixTracker
