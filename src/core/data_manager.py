@@ -1,8 +1,10 @@
 #!/usr/bin/env python3
 import json
-import os
+import traceback
 from pathlib import Path
-from typing import Dict, Optional
+from typing import Dict
+
+from src.utils.logger import logger
 
 
 class DataManager:
@@ -40,7 +42,8 @@ class DataManager:
 
             return True
         except Exception as e:
-            print(f"Error initializing JSON files: {e}")
+            logger.error(f"Error initializing JSON files: {e}")
+            logger.debug(traceback.format_exc())
             return False
 
     def load_scan_data(self) -> Dict:
@@ -52,7 +55,8 @@ class DataManager:
                     return json.load(file)
             return {}
         except Exception as e:
-            print(f"Error loading scan data: {e}")
+            logger.error(f"Error loading scan data: {e}")
+            logger.debug(traceback.format_exc())
             return {}
 
     def load_search_data(self) -> Dict:
@@ -64,7 +68,8 @@ class DataManager:
                     return json.load(file)
             return {}
         except Exception as e:
-            print(f"Error loading search data: {e}")
+            logger.error(f"Error loading search data: {e}")
+            logger.debug(traceback.format_exc())
             return {}
 
     def save_scan_data(self, scan_data: Dict) -> bool:
@@ -74,7 +79,8 @@ class DataManager:
                 json.dump(scan_data, file, ensure_ascii=False, indent=2)
             return True
         except Exception as e:
-            print(f"Error saving scan data to database.json: {e}")
+            logger.error(f"Error saving scan data to database.json: {e}")
+            logger.debug(traceback.format_exc())
             return False
 
     def save_search_data(self, search_data: Dict) -> bool:
@@ -84,7 +90,8 @@ class DataManager:
                 json.dump(search_data, file, ensure_ascii=False, indent=2)
             return True
         except Exception as e:
-            print(f"Error saving search data to search_data.json: {e}")
+            logger.error(f"Error saving search data to search_data.json: {e}")
+            logger.debug(traceback.format_exc())
             return False
 
     def clear_all_data(self, enabled_sites: list) -> bool:
@@ -111,11 +118,3 @@ class DataManager:
         except Exception as e:
             print(f"Error clearing JSON data: {e}")
             return False
-
-    def get_database_path(self) -> str:
-        """Get the path to the database file."""
-        return str(self.database_file)
-
-    def get_search_data_path(self) -> str:
-        """Get the path to the search data file."""
-        return str(self.search_data_file)

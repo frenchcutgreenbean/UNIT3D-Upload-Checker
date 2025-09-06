@@ -1,10 +1,15 @@
 #!/usr/bin/env python3
 import re
 import json
+import traceback
 import requests
 from urllib.parse import quote
 from thefuzz import fuzz
 from typing import Dict, Optional
+from ..utils.logger import get_logger
+
+# Initialize logger
+logger = get_logger()
 
 # Constants
 MIN_VOTE_COUNT = 5  # Minimum vote count on TMDB to consider as a match
@@ -21,12 +26,13 @@ class TMDBMatcher:
         """Search TMDB for all files in scan data."""
         try:
             if not self.tmdb_api_key:
-                print("Please add a TMDB key")
-                print("add tmdb <key>")
+                logger.error("No TMDB API key configured")
+                logger.info("Use: python uploadchecker.py add tmdb YOUR_API_KEY")
                 return False
 
             if not scan_data:
-                print("Please scan directories first")
+                logger.error("No scan data available")
+                logger.info("Run scan command first: python uploadchecker.py scan")
                 return False
 
             # Count files that need processing
@@ -40,10 +46,11 @@ class TMDBMatcher:
                         files_to_process += 1
 
             if files_to_process == 0:
-                print("✓ All files already have TMDB data")
+                logger.success("All files already have TMDB data")
                 return True
 
-            print(f"Searching TMDB for {files_to_process} files (skipping {total_files - files_to_process} already processed)")
+            logger.section("TMDB Search")
+            logger.info(f"Searching TMDB for {files_to_process} files (skipping {total_files - files_to_process} already processed)")
             
             # Track statistics
             stats = {
@@ -85,7 +92,7 @@ class TMDBMatcher:
                         print(f"  🎬 Processing: '{file_data.get('title', file_name)}'")
 
                     stats["processed"] += 1
-                    result = self._search_tmdb_for_single_file(file_data, verbose, stats)
+                    self._search_tmdb_for_single_file(file_data, verbose, stats)
                     
                     # Save progress after each file
                     if save_callback:
@@ -106,7 +113,8 @@ class TMDBMatcher:
             return True
             
         except Exception as e:
-            print(f"Error searching TMDB: {e}")
+            logger.error(f"Error searching TMDB: {e}")
+            logger.debug(traceback.format_exc())
             return False
 
     def _search_tmdb_for_single_file(self, file_data: Dict, verbose: bool = False, stats: Dict = None):
@@ -147,8 +155,16 @@ class TMDBMatcher:
                 match_result = self._is_title_match(result, clean_title=clean_title, secondary_title=secondary_title, verbose=verbose)
                 if match_result:
                     match_score, match_info = match_result
-                    imdb_id = self._get_imdb_from_tmdb(result.get("id"))
-                    file_data["imdb"] = imdb_id
+                    
+                    # Get and store IMDB ID
+                    tmdb_id = result.get("id")
+                    if verbose:
+                        print(f"  📝 Getting IMDB ID for TMDB ID: {tmdb_id}")
+                    imdb_id = self._get_imdb_from_tmdb(tmdb_id)
+                    
+                    if imdb_id:
+                        file_data["imdb"] = imdb_id
+                            
                     self._update_file_with_tmdb_data(file_data, result, match_score, match_info)
                     
                     if stats:
@@ -187,20 +203,24 @@ class TMDBMatcher:
                     stats["no_matches"] += 1
 
         except Exception as e:
-            print(f"  ✗ Error searching TMDB for '{title}': {e}")
+            logger.error(f"  ✗ Error searching TMDB for '{title}': {e}")
+            logger.debug(traceback.format_exc())
             if stats:
                 stats["no_matches"] += 1
 
     def _get_imdb_from_tmdb(self, tmdb_id: str) -> Optional[str]:
         """Get IMDb ID from TMDB."""
-        url = f"https://api.themoviedb.org/3/movie/{tmdb_id}?api_key={self.tmdb_api_key}"
+        url = f"https://api.themoviedb.org/3/movie/{tmdb_id}"
+        params = {"api_key": self.tmdb_api_key}
         try:
-            response = requests.get(url)
+            response = requests.get(url, params=params, timeout=10)
             response.raise_for_status()
             data = response.json()
-            return data.get("imdb_id", '')
+            imdb_id = data.get("imdb_id", '')
+            return imdb_id
         except Exception as e:
-            print(f"  ✗ Error fetching IMDb ID from TMDB: {e}")
+            logger.error(f"  ✗ Error fetching IMDb ID from TMDB: {e}")
+            logger.debug(traceback.format_exc())
             return None
 
     def _make_tmdb_search_request(self, clean_title: str, year: str = "") -> Optional[list]:
@@ -224,14 +244,15 @@ class TMDBMatcher:
         data = json.loads(response.content)
         return data.get("results", [])
 
-    def _is_low_vote_count(self, result: Dict) -> bool:
-        """Check if TMDB result has too low vote count."""
+    @staticmethod
+    def _is_low_vote_count(result: Dict) -> bool:
+        """Check if TMDB result has too of a low vote count."""
         vote_count = result.get("vote_count", 0)
         return vote_count <= MIN_VOTE_COUNT
 
+    @staticmethod
     def _is_title_match(
-        self,
-        result: Dict,
+            result: Dict,
         clean_title: str,
         secondary_title: str = None,
         verbose: bool = False,
@@ -284,11 +305,12 @@ class TMDBMatcher:
 
         if best_score >= FUZZY_MATCH_THRESHOLD:
             match_info = f"{best_label}_{best_kind}"
-            return (best_score, match_info)
+            return best_score, match_info
         
         return None
 
-    def _update_file_with_tmdb_data(self, file_data: Dict, tmdb_result: Dict, match_score: int = None, match_info: str = None):
+    @staticmethod
+    def _update_file_with_tmdb_data(file_data: Dict, tmdb_result: Dict, match_score: int = None, match_info: str = None):
         """Update file data with TMDB information."""
         tmdb_title = tmdb_result.get("title", "")
         tmdb_year = None
@@ -326,38 +348,24 @@ class TMDBMatcher:
                 "popularity": data.get("popularity", 0),
             }
         except requests.RequestException as e:
-            print(f"Error fetching TMDB details for ID {tmdb_id}: {e}")
+            logger.error(f"Error fetching TMDB details for ID {tmdb_id}: {e}")
+            logger.debug(traceback.format_exc())
             return {}
 
-    def is_runtime_match(self, file_runtime: int, tmdb_runtime: int, delta: int = 5) -> bool:
+    @staticmethod
+    def is_runtime_match(file_runtime: int, tmdb_runtime: int, delta: int = 5) -> bool:
         """Check if file runtime matches TMDB runtime within delta."""
         try:
             return abs(int(file_runtime) - int(tmdb_runtime)) <= delta
         except (ValueError, TypeError):
             return False
 
-    def _print_tmdb_summary(self, stats: Dict, verbose: bool = False):
+    @staticmethod
+    def _print_tmdb_summary(stats: Dict, verbose: bool = False):
         """Print summary of TMDB search results."""
-        print(f"\n📊 TMDB Search Summary:")
-        print(f"  ✓ Successful matches: {stats['matches_found']}")
-        print(f"  ✗ No matches found: {stats['no_matches']}")
-        print(f"  ⚠ Banned (low votes): {stats['banned_low_votes']}")
-        print(f"  → Skipped (already processed): {stats['skipped_existing']}")
-        print(f"  → Skipped (banned): {stats['skipped_banned']}")
-        
-        # Show concerning matches that might need review
-        if stats['fuzzy_matches'] and verbose:
-            print(f"\n⚠ Low-confidence matches (review recommended):")
-            for match in stats['fuzzy_matches'][:5]:  # Show top 5
-                print(f"    {match['score']}% - '{match['file_title']}' -> '{match['tmdb_title']}'")
-            if len(stats['fuzzy_matches']) > 5:
-                print(f"    ... and {len(stats['fuzzy_matches']) - 5} more")
-        
-        if stats['year_mismatches'] and verbose:
-            print(f"\n⚠ Year mismatches (review recommended):")
-            for mismatch in stats['year_mismatches'][:5]:  # Show top 5
-                print(f"    '{mismatch['title']}' - File: {mismatch['file_year']}, TMDB: {mismatch['tmdb_year']}")
-            if len(stats['year_mismatches']) > 5:
-                print(f"    ... and {len(stats['year_mismatches']) - 5} more")
-        
-        print()  # Empty line for spacing
+        logger.section("TMDB Search Summary")
+        logger.info(f"  ✓ Successful matches: {stats['matches_found']}")
+        logger.info(f"  ✗ No matches found: {stats['no_matches']}")
+        logger.info(f"  ⚠ Banned (low votes): {stats['banned_low_votes']}")
+        logger.info(f"  → Skipped (already processed): {stats['skipped_existing']}")
+        logger.info(f"  → Skipped (banned): {stats['skipped_banned']}")

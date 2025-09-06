@@ -2,10 +2,16 @@
 import math
 import os
 import re
-from pathlib import Path
-from typing import Dict, List, Optional, Iterable, Tuple
+import traceback
 from concurrent.futures import ThreadPoolExecutor, as_completed
+from pathlib import Path
+from typing import Dict, List, Optional, Tuple, Any, Generator
+
 from ..utils.file_parser import FileParser
+from ..utils.logger import get_logger
+
+# Initialize logger
+logger = get_logger()
 
 # Constants
 SUPPORTED_EXTENSIONS = {".mkv"}
@@ -22,7 +28,7 @@ class FileScanner:
 
     def __init__(self, max_workers: int = 4):
         self.parser = FileParser()
-        self.extract_filename = re.compile(r"^.*[\\\/](.*)")
+        self.extract_filename = re.compile(r"^.*[\\/](.*)")
         self.scan_data: Dict[str, Dict] = {}
         self.max_workers = max_workers
 
@@ -30,7 +36,8 @@ class FileScanner:
         """Scan all configured directories for media files concurrently."""
         try:
             if verbose:
-                print("Scanning directories...")
+                logger.section("Scanning Directories")
+                logger.info("Scanning directories for media files...")
             if not self._validate_directories(directories):
                 return False
 
@@ -41,23 +48,26 @@ class FileScanner:
                     try:
                         fut.result()
                     except Exception as e:
-                        print(f"Error scanning {futures[fut]}: {e}")
+                        logger.error(f"Error scanning {futures[fut]}: {e}")
+                        logger.debug(traceback.format_exc())
 
             return True
         except Exception as e:
-            print(f"Error scanning directories: {e}")
+            logger.error(f"Error scanning directories: {e}")
+            logger.debug(traceback.format_exc())
             return False
 
-    def _validate_directories(self, directories: List[str]) -> bool:
+    @staticmethod
+    def _validate_directories(directories: List[str]) -> bool:
         """Validate that directories are configured and exist."""
         if not directories:
-            print("Please add a directory")
-            print("add dir <dir>")
+            logger.error("No directories configured")
+            logger.info("Use: python uploadchecker.py add dir <directory_path>")
             return False
 
         for directory in directories:
             if not os.path.exists(directory):
-                print(f"Directory does not exist: {directory}")
+                logger.error(f"Directory does not exist: {directory}")
                 return False
 
         return True
@@ -76,7 +86,8 @@ class FileScanner:
 
         self.scan_data[directory] = dir_data
 
-    def _get_media_files(self, directory: str, verbose: bool = False) -> Iterable[str]:
+    @staticmethod
+    def _get_media_files(directory: str, verbose: bool = False) -> Generator[str, None, list[Any] | None]:
         """Yield media files in directory matching supported extensions using os.walk.
 
         Prune subdirectories purely by name (no inspection of their contents).
@@ -84,7 +95,7 @@ class FileScanner:
         dir_path = Path(directory)
         if not dir_path.exists():
             if verbose:
-                print(f"Directory does not exist: {directory}")
+                logger.warning(f"Directory does not exist: {directory}")
             return []
 
         for root, dirs, files in os.walk(directory, topdown=True):
@@ -93,17 +104,19 @@ class FileScanner:
             for subdir in list(dirs):
                 if SERIES_DIR_PATTERN.search(subdir):
                     if verbose:
-                        print(f"Skipping directory by name (series-like): {os.path.join(root, subdir)}")
+                        logger.debug(f"Skipping directory by name (series-like): {subdir}")
                     dirs.remove(subdir)
 
             for name in files:
                 if os.path.splitext(name)[1].lower() in SUPPORTED_EXTENSIONS:
                     yield os.path.join(root, name)
+        return None
 
-    def _file_key(self, file_path: str) -> Tuple[int, float]:
+    @staticmethod
+    def _file_key(file_path: str) -> Tuple[int, float]:
         """Return lightweight fingerprint for file: (size_bytes, mtime)."""
         st = os.stat(file_path)
-        return (st.st_size, st.st_mtime)
+        return st.st_size, st.st_mtime
 
     def _should_skip_file(self, file_path: str, dir_data: Dict, verbose: bool) -> bool:
         """Check if file should be skipped by comparing file_key (size+mtime)."""
@@ -112,7 +125,7 @@ class FileScanner:
             key = self._file_key(file_path)
         except (OSError, PermissionError):
             if verbose:
-                print(f"Cannot stat {file_path}, skipping")
+                logger.warning(f"Cannot access {file_path}, skipping")
             return True
 
         existing = dir_data.get(file_name)
@@ -120,12 +133,12 @@ class FileScanner:
             existing_key = existing.get("file_key")
             if existing_key == key:
                 if verbose:
-                    print(f"{file_name} unchanged, skipping (cached).")
+                    logger.debug(f"{file_name} unchanged, skipping (cached).")
                 return True
         return False
 
     def _process_media_file(self, file_path: str, verbose: bool) -> Optional[Dict]:
-        """Process a single media file and extract metadata."""
+        """Process a single media file and extract basic metadata (no MediaInfo yet)."""
         try:
             file_name = self.extract_filename.match(file_path).group(1)
             st = os.stat(file_path)
@@ -133,10 +146,11 @@ class FileScanner:
             file_size = self._convert_size(size_bytes)
 
             if verbose:
-                print("=" * 80)
-                print(f"Scanning: {file_path}")
-                print(f"File size: {file_size}")
+                logger.debug("=" * 80)
+                logger.info(f"Scanning: {file_name}")
+                logger.debug(f"File size: {file_size}")
 
+            # Parse filename for basic metadata
             parsed_data = self.parser.parse_filename(file_name, verbose)
 
             return {
@@ -147,11 +161,13 @@ class FileScanner:
                 **parsed_data,
             }
         except Exception as e:
-            print(f"Error processing {file_path}: {e}")
+            logger.error(f"Error processing {file_path}: {e}")
+            logger.debug(traceback.format_exc())
             return None
 
-    def _convert_size(self, size_bytes: int) -> str:
-        """Convert bytes to human readable format."""
+    @staticmethod
+    def _convert_size(size_bytes: int) -> str:
+        """Convert bytes to human-readable format."""
         if size_bytes == 0:
             return "0B"
         size_name = ["B", "KB", "MB", "GB", "TB", "PB", "EB", "ZB", "YB"]
@@ -164,6 +180,3 @@ class FileScanner:
         """Get the current scan data."""
         return self.scan_data.copy()
 
-    def set_scan_data(self, scan_data: Dict):
-        """Set the scan data (for loading from database)."""
-        self.scan_data = scan_data

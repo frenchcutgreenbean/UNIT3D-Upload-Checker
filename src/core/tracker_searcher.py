@@ -1,9 +1,13 @@
 #!/usr/bin/env python3
 import time
-import re
-import requests
-from typing import Dict, List, Optional
+import traceback
+from typing import Dict, List
+
 from ..trackers.adapter import get_tracker_driver
+from ..utils.logger import get_logger
+
+# Initialize logger
+logger = get_logger()
 
 
 class TrackerSearcher:
@@ -23,7 +27,8 @@ class TrackerSearcher:
     ) -> bool:
         """Search all enabled trackers for files in scan data."""
         try:
-            print("Searching trackers")
+            logger.section("Searching Trackers")
+            logger.info("Searching trackers for duplicates")
 
             if not self._validate_api_keys(enabled_sites):
                 return False
@@ -36,18 +41,21 @@ class TrackerSearcher:
                         total_files += 1
 
             processed_count = 0
-            print(f"Found {total_files} files to process")
+            logger.info(f"Found {total_files} files to process")
 
             for directory in scan_data:
                 for file_name, file_data in scan_data[directory].items():
+                    if verbose and file_data.get("banned"):
+                        logger.debug(f"Banned file check: {file_data.get('banned')}")
                     if not self._should_process_file(file_data):
                         continue
-
+                    if verbose and file_data.get("banned"):
+                        logger.debug("process_file broken - file marked as banned but still processed")
                     processed_count += 1
                     progress = (
                         (processed_count / total_files) * 100 if total_files > 0 else 0
                     )
-                    print(f"\n[{processed_count}/{total_files} - {progress:.1f}%]")
+                    logger.info(f"\n[{processed_count}/{total_files} - {progress:.1f}%]")
 
                     self._search_file_on_trackers(
                         file_data, enabled_sites, cooldown, verbose
@@ -58,16 +66,17 @@ class TrackerSearcher:
                         try:
                             save_callback(scan_data)
                             if verbose:
-                                print(
+                                logger.debug(
                                     f"💾 Progress saved after processing '{file_data['title']}'"
                                 )
                         except Exception as e:
-                            print(f"⚠️  Warning: Failed to save progress: {e}")
+                            logger.warning(f"Failed to save progress: {e}")
 
-            print(f"\n✅ Tracker search completed! Processed {processed_count} files.")
+            logger.success(f"Tracker search completed! Processed {processed_count} files.")
             return True
         except Exception as e:
-            print(f"Error searching trackers: {e}")
+            logger.error(f"Error searching trackers: {e}")
+            logger.debug(traceback.format_exc())
             return False
 
     def _validate_api_keys(self, enabled_sites: List[str]) -> bool:
@@ -78,15 +87,16 @@ class TrackerSearcher:
 
         for tracker in enabled_sites:
             if not api_keys.get(tracker):
-                print(f"No API key for {tracker} found.")
-                print(
+                logger.warning(f"No API key for {tracker} found.")
+                logger.info(
                     "If you want to use this tracker, add an API key to the settings."
                 )
                 if not input("Continue? [y/n] ").lower().startswith("y"):
                     return False
         return True
 
-    def _should_process_file(self, file_data: Dict) -> bool:
+    @staticmethod
+    def _should_process_file(file_data: Dict) -> bool:
         """Check if file should be processed for tracker searches."""
         if file_data.get("banned", False):
             return False
@@ -102,11 +112,11 @@ class TrackerSearcher:
         verbose: bool = False,
     ):
         """Search a single file across all enabled trackers."""
-        print("=" * 80)
-        print(f"Searching Trackers for {file_data['title']}")
+        logger.debug("=" * 80)
+        logger.info(f"Searching Trackers for {file_data['title']}")
 
         if verbose:
-            print(f"File: {file_data.get('file_name')}")
+            logger.debug(f"File: {file_data.get('file_name')}")
 
         if "trackers" not in file_data:
             file_data["trackers"] = {}
@@ -120,7 +130,7 @@ class TrackerSearcher:
                 tracker_info = self.tracker_info.get(tracker, {})
 
                 if not tracker_info:
-                    print(f"Tracker {tracker} not found in tracker_info.json")
+                    logger.warning(f"Tracker {tracker} not found in tracker_info.json")
                     continue
 
                 # Create the appropriate tracker driver
@@ -129,14 +139,14 @@ class TrackerSearcher:
                 # Skip if already searched
                 if tracker in file_data.get("trackers", {}):
                     if verbose:
-                        print(
+                        logger.debug(
                             f"{tracker} already searched for {file_data['title']}. Skipping."
                         )
                     continue
 
                 # Search the tracker
-                print(f"Searching {tracker} for {file_data['title']}")
-                result = driver.search_by_tmdb(file_data, verbose)
+                logger.info(f"Searching {tracker} for {file_data['title']}")
+                result = driver.search_tracker(file_data, verbose)
 
                 # Save result
                 file_data["trackers"][tracker] = result
@@ -147,11 +157,12 @@ class TrackerSearcher:
                 # Mark that we made an API call
                 api_calls_made = True
             except Exception as e:
-                print(f"Error searching {tracker} for {file_data['title']}: {str(e)}")
+                logger.error(f"Error searching {tracker} for {file_data['title']}: {str(e)}")
+                logger.debug(traceback.format_exc())
                 file_data["trackers"][tracker] = {
                     "exists_on_tracker": False,
                     "is_upgrade": False,
-                    "existing_qualities": [],
+                    "upgrade_reason": None,
                     "errors": [f"Error: {str(e)}"],
                 }
                 
@@ -160,31 +171,30 @@ class TrackerSearcher:
 
         # Only apply cooldown if we actually made API calls
         if api_calls_made:
-            print(f"Waiting for cooldown... {cooldown} seconds")
+            logger.info(f"Waiting for cooldown... {cooldown} seconds")
             time.sleep(cooldown)
         else:
-            print("No new tracker searches performed, skipping cooldown.")
+            logger.info("No new tracker searches performed, skipping cooldown.")
 
-    def _print_tracker_result(self, tracker: str, result: Dict):
+    @staticmethod
+    def _print_tracker_result(tracker: str, result: Dict):
         """Print the result of a tracker search."""
         if result.get("no_api_key", False):
-            print(f"{tracker}: No API key")
+            logger.warning(f"{tracker}: No API key")
         elif result.get("banned_group", False):
-            print(f"{tracker}: Banned group")
+            logger.warning(f"{tracker}: Banned group")
         elif result.get("errors"):
-            print(
+            logger.error(
                 f"{tracker}: Error - {result.get('errors')[0] if result.get('errors') else 'Unknown error'}"
             )
-        elif result.get("missing_quality_info", False):
-            print(f"{tracker}: DANGER - Quality or resolution could not be determined from filename")
-        elif result.get("is_exact_duplicate", False):
-            print(f"{tracker}: DUPLICATE")
+        elif result.get("is_duplicate", False):
+            logger.warning(f"{tracker}: DUPLICATE - {result.get('duplicate_reason', 'Duplicate exists')}")
         elif result.get("exists_on_tracker", False):
-            qualities = ", ".join(result.get("existing_qualities", []))
+            reason = result.get("upgrade_reason", "")
                     
             if result.get("is_upgrade", False):
-                print(f"{tracker}: SAFE - This is an upgrade over {qualities}")
+                logger.success(f"{tracker}: SAFE - This is an upgrade over {reason}")
             else:
-                print(f"{tracker}: RISKY - Similar quality exists: {qualities}")
+                logger.warning(f"{tracker}: RISKY - Similar quality exists: {reason}")
         else:
-            print(f"{tracker}: SAFE - Not found on tracker")
+            logger.success(f"{tracker}: SAFE - Not found on tracker")

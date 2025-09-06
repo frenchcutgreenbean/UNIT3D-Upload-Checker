@@ -2,9 +2,11 @@
 import csv
 import shlex
 import sys
+import traceback
 from pathlib import Path
 from urllib.parse import quote
 from typing import Dict
+from src.utils.logger import logger
 
 PY_VERSION = "py" if sys.platform.startswith("win") else "python3"
 
@@ -23,7 +25,7 @@ class ResultExporter:
         try:
             gg_path = self.settings.current_settings.get("gg_path")
             if not gg_path:
-                print("gg_path not configured.")
+                logger.error("gg_path not configured.")
                 return False
 
             gg_dir = Path(gg_path)
@@ -57,11 +59,12 @@ class ResultExporter:
                             )
                             f.write(line + "\n")
 
-                print(f"Exported gg-bot auto_upload commands to {out_path}")
+                logger.success(f"Exported gg-bot auto_upload commands to {out_path}")
 
             return True
         except Exception as e:
-            print(f"Error exporting gg-bot commands: {e}")
+            logger.error(f"Error exporting gg-bot commands: {e}")
+            logger.debug(traceback.format_exc())
             return False
 
     def export_ua_commands(self, search_data: Dict) -> bool:
@@ -69,7 +72,7 @@ class ResultExporter:
         try:
             ua_path = self.settings.current_settings.get("ua_path")
             if not ua_path:
-                print("ua_path not configured.")
+                logger.error("ua_path not configured.")
                 return False
 
             ua_dir = Path(ua_path)
@@ -102,11 +105,12 @@ class ResultExporter:
                             )
                             f.write(line + "\n")
 
-                print(f"Exported Upload-Assistant commands to {out_path}")
+                logger.success(f"Exported Upload-Assistant commands to {out_path}")
 
             return True
         except Exception as e:
-            print(f"Error exporting Upload-Assistant commands: {e}")
+            logger.error(f"Error exporting Upload-Assistant commands: {e}")
+            logger.debug(traceback.format_exc())
             return False
 
     def export_txt_format(self, search_data: Dict) -> bool:
@@ -128,11 +132,12 @@ class ResultExporter:
                             )
                             f.write(formatted_info + "\n")
 
-                print(f"Manual info saved to {out_path}")
+                logger.success(f"Manual info saved to {out_path}")
 
             return True
         except Exception as e:
-            print(f"Error writing uploads.txt: {e}")
+            logger.error(f"Error writing uploads.txt: {e}")
+            logger.debug(traceback.format_exc())
             return False
 
     def export_csv_format(self, search_data: Dict) -> bool:
@@ -168,15 +173,17 @@ class ResultExporter:
                             )
                             writer.writerow(row)
 
-                print(f"Manual info saved to {out_path}")
+                logger.success(f"Manual info saved to {out_path}")
 
             return True
         except Exception as e:
-            print(f"Error writing uploads.csv: {e}")
+            logger.error(f"Error writing uploads.csv: {e}")
+            logger.debug(traceback.format_exc())
             return False
 
+    @staticmethod
     def _build_command_line(
-        self, py_version: str, script_path: Path, *args: str
+            py_version: str, script_path: Path, *args: str
     ) -> str:
         """Build a command line string with proper escaping."""
         cmd = [py_version, str(script_path), *args]
@@ -192,25 +199,13 @@ class ResultExporter:
         tmdb_url = f"https://www.themoviedb.org/movie/{tmdb}" if tmdb else "N/A"
         if driver == "unit3d":
             # Build URLs
-            tracker_tmdb = (
-                f"{tracker_url}torrents?view=list&tmdbId={tmdb}"
-                if tmdb and tracker_url
-                else "N/A"
-            )
-            tracker_string = (
-                f"{tracker_url}torrents?view=list&name={url_query}"
-                if tracker_url
-                else "N/A"
-            )
-        else:
-            tracker_tmdb = (
-                f"{tracker_url}torrents?search=&tmdb=movie%2F{tmdb}"
-                if tmdb and tracker_url
-                else "N/A"
-            )
-            tracker_string = (
-                f"{tracker_url}torrents?search={url_query}" if tracker_url else "N/A"
-            )
+            tracker_tmdb =  f"{tracker_url}torrents?view=list&tmdbId={tmdb}"
+            tracker_string = f"{tracker_url}torrents?view=list&name={url_query}"
+
+        else: # Is F3NIX
+
+            tracker_tmdb = f"{tracker_url}torrents?search=&tmdb=movie%2F{tmdb}"
+            tracker_string = f"{tracker_url}torrents?search={url_query}"
 
         # Format media info
         media_info_str = self._format_media_info_text(file_info.get("media_info"))
@@ -239,28 +234,13 @@ class ResultExporter:
         tracker_url = self.tracker_info.get(tracker, {}).get("url", "")
         driver = self.tracker_info.get(tracker, {}).get("driver", "").lower()
 
-        tmdb_url = f"https://www.themoviedb.org/movie/{tmdb}" if tmdb else "N/A"
+        tmdb_url = f"https://www.themoviedb.org/movie/{tmdb}"
         if driver == "unit3d":
-            # Build URLs
-            tracker_tmdb = (
-                f"{tracker_url}torrents?view=list&tmdbId={tmdb}"
-                if tmdb and tracker_url
-                else "N/A"
-            )
-            tracker_string = (
-                f"{tracker_url}torrents?view=list&name={url_query}"
-                if tracker_url
-                else "N/A"
-            )
-        else:
-            tracker_tmdb = (
-                f"{tracker_url}torrents?search=&tmdb=movie%2F{tmdb}"
-                if tmdb and tracker_url
-                else "N/A"
-            )
-            tracker_string = (
-                f"{tracker_url}torrents?search={url_query}" if tracker_url else "N/A"
-            )
+            tracker_tmdb = f"{tracker_url}torrents?view=list&tmdbId={tmdb}"
+            tracker_string = f"{tracker_url}torrents?view=list&name={url_query}"
+        else:  # Is F3NIX
+            tracker_tmdb = f"{tracker_url}torrents?search=&tmdb=movie%2F{tmdb}"
+            tracker_string = f"{tracker_url}torrents?search={url_query}" 
 
         # Format media info for CSV (single line)
         media_info_str = self._format_media_info_csv(file_info.get("media_info"))
@@ -281,7 +261,8 @@ class ResultExporter:
             "Media Info": media_info_str,
         }
 
-    def _format_media_info_text(self, media_info: Dict) -> str:
+    @staticmethod
+    def _format_media_info_text(media_info: Dict) -> str:
         """Format media info for text display."""
         if not media_info or media_info == "None":
             return "None"
@@ -292,13 +273,14 @@ class ResultExporter:
             Subtitle(s): {media_info.get('subtitle(s)', 'N/A')}
             Audio Info: {media_info.get('audio_info', 'N/A')}
             Video Info: {media_info.get('video_info', 'N/A')}
-            HDR Type: {media_info.get('hdr_type', 'N/A')}
+            HDR Format: {media_info.get('hdr_format', 'N/A')}
             Duration: {media_info.get('runtime', 'N/A')} min
             """
         except (AttributeError, KeyError):
             return str(media_info)
 
-    def _format_media_info_csv(self, media_info: Dict) -> str:
+    @staticmethod
+    def _format_media_info_csv(media_info: Dict) -> str:
         """Format media info for CSV (single line)."""
         if not media_info or media_info == "None":
             return "None"
@@ -309,7 +291,7 @@ class ResultExporter:
                 f"Subtitle(s): {media_info.get('subtitle(s)', 'N/A')}",
                 f"Audio Info: {media_info.get('audio_info', 'N/A')}",
                 f"Video Info: {media_info.get('video_info', 'N/A')}",
-                f"HDR Type: {media_info.get('hdr_type', 'N/A')}",
+                f"HDR Format: {media_info.get('hdr_format', 'N/A')}",
                 f"Duration: {media_info.get('runtime', 'N/A')} min",
             ]
             return ", ".join(parts)

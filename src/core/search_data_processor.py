@@ -1,7 +1,12 @@
 #!/usr/bin/env python3
-from typing import Dict, Optional
-from ..mediainfo import get_media_info
+import traceback
+from typing import Dict
+
 from .safety_classifier import SafetyClassifier
+from ..utils.logger import get_logger
+
+# Initialize logger
+logger = get_logger()
 
 
 class SearchDataProcessor:
@@ -14,7 +19,8 @@ class SearchDataProcessor:
     def create_search_data(self, scan_data: Dict, enabled_sites: list, verbose: bool = False) -> Dict:
         """Create search data by processing scan results and categorizing by safety level."""
         try:
-            print("Creating search data...")
+            logger.section("Creating Search Data")
+            logger.info("Processing scan results and categorizing by safety level...")
             
             # Initialize search data structure
             search_data = {}
@@ -22,7 +28,6 @@ class SearchDataProcessor:
                 search_data[tracker] = {
                     "safe": {},
                     "risky": {},
-                    "danger": {},
                 }
 
             # Count total files for progress tracking
@@ -35,20 +40,17 @@ class SearchDataProcessor:
                 "skipped": 0,
                 "safe": 0,
                 "risky": 0, 
-                "danger": 0,
-                "exact_dupes": 0,
-                "media_info_extracted": 0
+                "duplicates": 0
             }
 
             if verbose:
-                print(f"📊 Found {total_files} files across {len(scan_data)} directories")
-                print("🔍 Processing files and extracting media information...")
-                print()
+                logger.info(f"📊 Found {total_files} files across {len(scan_data)} directories")
+                logger.info("🔍 Processing files and extracting media information...")
 
             # Process each file
             for directory in scan_data:
                 if verbose:
-                    print(f"📁 Processing directory: {directory}")
+                    logger.info(f"📁 Processing directory: {directory}")
                     
                 for file_name, file_data in scan_data[directory].items():
                     processed_count += 1
@@ -56,34 +58,29 @@ class SearchDataProcessor:
                     # Progress indicator (every 10 files or if verbose)
                     if verbose or processed_count % 10 == 0 or processed_count == total_files:
                         progress = (processed_count / total_files) * 100
-                        print(f"⏳ Progress: {processed_count}/{total_files} ({progress:.1f}%) - {file_name[:50]}...")
+                        logger.info(f"⏳ Progress: {processed_count}/{total_files} ({progress:.1f}%) - {file_name[:50]}...")
                     
-                    if self._should_skip_file_for_search_data(file_data):
-                        if verbose:
-                            print(f"   ⏭️  Skipping: {file_data.get('title', file_name)} (banned or no tracker data)")
+                    # If file is banned, just skip it completely
+                    if file_data.get("banned", False):
+                        continue
+                        
+                    # Skip files with no tracker data
+                    if "trackers" not in file_data:
                         stats["skipped"] += 1
                         continue
 
                     stats["processed"] += 1
 
-                    # Extract media info once if needed
-                    if "media_info" not in file_data:
-                        if verbose:
-                            print(f"   🎬 Extracting media info...")
-                        file_location = file_data["file_location"]
-                        media_info = get_media_info(file_location)
-                        scan_data[directory][file_name]["media_info"] = media_info
-                        stats["media_info_extracted"] += 1
-                    else:
-                        media_info = file_data["media_info"]
-                        if verbose:
-                            print(f"   ✅ Media info already available")
+                    # Media info should now already exist from file scanner
+                    media_info = file_data.get("media_info", {})
+                    if not media_info and verbose:
+                        logger.warning(f"⚠️ Warning: No media info available")
 
                     # Process each tracker result using the new classifier
                     trackers_data = file_data.get("trackers", {})
                     
                     if verbose:
-                        print(f"   🔍 Classifying safety for {len(trackers_data)} trackers...")
+                        logger.debug(f"🔍 Classifying safety for {len(trackers_data)} trackers...")
                     
                     try:
                         classifications = self.safety_classifier.classify_file(
@@ -92,11 +89,17 @@ class SearchDataProcessor:
 
                         for tracker, classification in classifications.items():
                             try:
-                                # Skip exact duplicates
-                                if trackers_data.get(tracker, {}).get("is_exact_duplicate"):
-                                    stats["exact_dupes"] += 1
+                                # Skip if tracker has banned_group flag set
+                                if trackers_data.get(tracker, {}).get("banned_group", False):
                                     if verbose:
-                                        print(f"      🚫 {tracker}: Exact duplicate - skipping")
+                                        logger.debug(f"{tracker}: Banned group - skipping")
+                                    continue
+                                
+                                # Skip duplicates
+                                if trackers_data.get(tracker, {}).get("is_duplicate"):
+                                    stats["duplicates"] += 1
+                                    if verbose:
+                                        logger.debug(f"{tracker}: Duplicate - skipping")
                                     continue
 
                                 # Build clean file info
@@ -111,34 +114,35 @@ class SearchDataProcessor:
                                 stats[category] += 1
                                 
                                 if verbose:
-                                    emoji = {"safe": "🟢", "risky": "🟡", "danger": "🔴"}[category]
-                                    print(f"      {emoji} {tracker}: {category.upper()} - {classification['reason']}")
+                                    emoji = {"safe": "🟢", "risky": "🟡"}[category]
+                                    logger.debug(f"      {emoji} {tracker}: {category.upper()} - {classification['reason']}")
 
                             except Exception as e:
-                                print(f"      ❌ Error processing {tracker} for {file_data['title']}: {e}")
+                                logger.error(f"❌ Error processing {tracker} for {file_data['title']}: {e}")
+                                logger.debug(traceback.format_exc())
 
                     except Exception as e:
-                        print(f"   ❌ Error classifying {file_data['title']}: {e}")
+                        logger.error(f"❌ Error classifying {file_data['title']}: {e}")
+                        logger.debug(traceback.format_exc())
 
             self._print_processing_summary(stats, verbose)
             return search_data
 
         except Exception as e:
-            print(f"❌ Error creating search_data.json: {e}")
-            import traceback
-            if verbose:
-                traceback.print_exc()
+            logger.error(f"❌ Error creating search_data.json: {e}")
+            logger.debug(traceback.format_exc())
             return {}
 
-    def _should_skip_file_for_search_data(self, file_data: Dict) -> bool:
+    @staticmethod
+    def _should_skip_file_for_search_data(file_data: Dict) -> bool:
         """Check if file should be skipped during search data creation."""
-        if file_data.get("banned", False):
-            return True
+        # Skip files without tracker data
         if "trackers" not in file_data:
             return True
         return False
 
-    def _build_clean_file_info(self, file_data: Dict, classification: Dict, media_info: Dict) -> Dict:
+    @staticmethod
+    def _build_clean_file_info(file_data: Dict, classification: Dict, media_info: Dict) -> Dict:
         """Build clean file info without confusing messages."""
         return {
             "file_location": file_data["file_location"],
@@ -153,30 +157,22 @@ class SearchDataProcessor:
             "details": classification.get("details", [])
         }
 
-    def _print_processing_summary(self, stats: Dict, verbose: bool = False):
+    @staticmethod
+    def _print_processing_summary(stats: Dict, verbose: bool = False):
         """Print summary of processing results."""
-        print(f"\n📊 Search Data Processing Summary:")
-        print(f"  ✓ Files processed: {stats['processed']}")
-        
-        if verbose:
-            print(f"  📋 Media info extracted: {stats['media_info_extracted']}")
-        
-        print(f"  → Files skipped: {stats['skipped']}")
-        print(f"  🟢 Safe uploads: {stats['safe']}")
-        print(f"  🟡 Risky uploads: {stats['risky']}")
-        print(f"  🔴 Dangerous uploads: {stats['danger']}")
-        print(f"  🚫 Exact duplicates: {stats['exact_dupes']}")
-        
-        total_categorized = stats['safe'] + stats['risky'] + stats['danger']
+        logger.section("Search Data Processing Summary")
+        logger.info(f"✓ Files processed: {stats['processed']}")
+        logger.info(f"→ Files skipped: {stats['skipped']}")
+        logger.info(f"🟢 Safe uploads: {stats['safe']}")
+        logger.info(f"🟡 Risky uploads: {stats['risky']}")
+        logger.info(f"🚫 Duplicates: {stats['duplicates']}")
+
+        total_categorized = stats['safe'] + stats['risky']
         if total_categorized > 0:
             safe_pct = (stats['safe'] / total_categorized) * 100
             risky_pct = (stats['risky'] / total_categorized) * 100
-            danger_pct = (stats['danger'] / total_categorized) * 100
             
             if verbose:
-                print(f"\n📈 Classification Breakdown:")
-                print(f"  🟢 Safe: {safe_pct:.1f}%")
-                print(f"  🟡 Risky: {risky_pct:.1f}%")
-                print(f"  🔴 Danger: {danger_pct:.1f}%")
-        
-        print()
+                logger.section("Classification Breakdown")
+                logger.info(f"🟢 Safe: {safe_pct:.1f}%")
+                logger.info(f"🟡 Risky: {risky_pct:.1f}%")

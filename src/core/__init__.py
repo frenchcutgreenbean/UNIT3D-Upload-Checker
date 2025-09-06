@@ -10,6 +10,7 @@ from .search_data_processor import SearchDataProcessor
 from .result_exporter import ResultExporter
 from .data_manager import DataManager
 from .safety_classifier import SafetyClassifier
+from .file_screener import FileScreener
 
 __all__ = [
     "FileScanner",
@@ -18,5 +19,6 @@ __all__ = [
     "SearchDataProcessor",
     "ResultExporter",
     "DataManager",
-    "SafetyClassifier"
+    "SafetyClassifier",
+    "FileScreener"
 ]
