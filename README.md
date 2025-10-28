@@ -16,6 +16,8 @@
 - OnlyEncodes
 - ReelFliX
 - Upload.cx
+- Rastastugan
+- HomieHelpDesk
 
 Any UNIT3D trackers can be supported by adding the necessary info.
 
